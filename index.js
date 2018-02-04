@@ -32,7 +32,7 @@ class CanvasModel {
         // this.startAt = 
         this.eventHandler = new EventEmitter();
         // Array of line models, 0 being top line and <last index> being last line.
-        this.lines = [];
+        this.lines = []; // All lines to render..
         this.firstRender = true;
         this.render = this.render.bind(this);
         this.userApi = this.userApi.bind(this);
@@ -78,7 +78,7 @@ class CanvasModel {
     
     clearCanvas() 
     {
-        // readline.moveCursor(process.stdout, 0, -1)
+        readline.moveCursor(process.stdout, -1, -((this.lines.length) + this.linesWithPrompts().length))
         this.clearBuffers();
         readline.clearScreenDown(process.stdout, 1);
     }
@@ -117,11 +117,8 @@ class CanvasModel {
                 this.eventHandler.emit('model-value-add', 
                     { name: line.prompt.name, value: this.canvasModel[line.prompt.name] });
                 this.eventHandler.emit('model-update', this.canvasModel);
-                // resetCursor();
-                // readline.moveCursor(process.stdout, 0, -(this.lines.indexOf(line)));
-                // readline.clearLine(process.stdout);
-                // // clear current prompt then write a fake one.
-                process.stdout.write(line.baseContents + "\n");
+                
+                process.stdout.write("\n");
                 continue;
             }
             
@@ -167,17 +164,19 @@ class CanvasModel {
                     name, options
                 };
             },
+            /**
+             * Require a model value
+             */
             model: searchFor => {
                 // if user passes array of required values then return a Object, else just the value
                 const objectReturnMode = searchFor instanceof Array;
                 const query = objectReturnMode ? searchFor : [searchFor];
                 const returnBuffer = {};
                 // user runs this function
-                const onFound = userCallback => {
+                const onFound = (userCallback, fallback = () => {}) => {
                     
                     const checkBuffer = () => {
                         _.forEach(this.canvasModel, (value, key) => {
-                            // console.log('checking: ', property)
                             const i = query.indexOf(key);
                             if(i != -1)
                             {
@@ -190,7 +189,8 @@ class CanvasModel {
                     // already exists in buffer.
                     if(query.length == 0)
                         return userCallback(objectReturnMode ? returnBuffer : _.toArray(returnBuffer)[0]);
-                    
+                    else
+                        fallback();
 
                     const onUpdate = property => {
                         checkBuffer();
@@ -199,12 +199,20 @@ class CanvasModel {
                             // found everything.
                             this.eventHandler.removeListener('model-value-add', onUpdate);
                             // userCallback(objectReturnMode ? returnBuffer : returnBuffer[property.name]);
-                        }
+                        } else fallback();
                     };
-                    // add a event listener.
+                    // add a event listener - NOTE: Fix memory leak when listening for a model property that is never added.
+                    // if(this.eventHandler.listeners('model-value-add').indexOf(onUpdate) == -1)
                     this.eventHandler.on('model-value-add', onUpdate);
                 };
                 return onFound;
+            },
+            /**
+             * Set a model value.
+             */
+            set: modelKey => {
+                if(!this.canvasModel) this.canvasModel = {};
+                return value => this.canvasModel[modelKey] = value;
             },
             /**
              * TEST THIS.
@@ -225,7 +233,8 @@ class CanvasModel {
              */
             fragment: requiredModelProperties => {
                 return fragmentRenderer => {
-                    this.userApi().model(requiredModelProperties)(modelFragment => fragmentRenderer(this.userApi(), modelFragment));
+                    this.userApi().model(requiredModelProperties)(modelFragment => 
+                        fragmentRenderer(this.userApi(), modelFragment));
                 };
             },
         }
