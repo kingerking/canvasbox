@@ -44,7 +44,8 @@ class CanvasModel {
         this.interval;
         // this.render();
         this.startLoop();
-        this.promptBuffer = {};
+        // canvas model does not reset each render cycle.
+        this.canvasModel = {};
         process.stdin.setRawMode(true);
         process.stdin.on('keypress', (str, key) => key.ctrl && key.name == 'c' ? process.exit() : null);
 
@@ -72,7 +73,6 @@ class CanvasModel {
     clearBuffers() 
     {
         this.lines = [];
-        // this.promptBuffer = {};
     }
     
     linesWithPrompts()
@@ -88,10 +88,9 @@ class CanvasModel {
         // readline.cursorTo(process.stdout, 0, 0);
         // readline.clearScreenDown(process.stdout);
         
+        // explore using canvas.clear() so users can have a log of their canvas if they want.
         this.clearBuffers();
         const userRender = this.userCanvasFactory( this.userApi() );
-
-
         const resetCursor = () => readline.moveCursor(process.stdout, 0, -(this.lines.length));
 
         if(!this.firstRender)
@@ -103,15 +102,18 @@ class CanvasModel {
         {
             if(!!line.prompt)
             {
-                this.promptBuffer[line.prompt.name] = await Prompt(line.baseContents);
-                this.eventHandler.emit('prompt-finish', returnValue, line.prompt, line);
-                this.eventHandler.emit('prompt-buffer-update', 
-                    { name: line.prompt.name, value: this.promptBuffer[line.prompt.name] });
+                const returned = await Prompt(line.baseContents);
+                // console.log("new canvas model property: ", returned);
+                this.canvasModel[line.prompt.name] = returned;
+                this.eventHandler.emit('prompt-finish', returned, line.prompt, line);
+                this.eventHandler.emit('model-value-add', 
+                    { name: line.prompt.name, value: this.canvasModel[line.prompt.name] });
+                this.eventHandler.emit('model-update', this.canvasModel);
                 // resetCursor();
                 // readline.moveCursor(process.stdout, 0, -(this.lines.indexOf(line)));
                 // readline.clearLine(process.stdout);
                 // // clear current prompt then write a fake one.
-                // process.stdout.write(line.baseContents + "\n");
+                process.stdout.write(line.baseContents + "\n");
                 continue;
             }
             
@@ -137,6 +139,9 @@ class CanvasModel {
              * Create a line.
              */
             write: (contents = "", prompt, options) => (new LineModel(this, prompt, contents, this.lines.length, BASE_LINE_CREATION_OPTIONS)).userApi(),
+            writeOnce: factory => {
+                
+            },
             /**
              * Map the event system to user.
              */
@@ -154,21 +159,64 @@ class CanvasModel {
                     name, options
                 };
             },
-            require: searchFor => {
+            model: searchFor => {
                 // if user passes array of required values then return a Object, else just the value
-                const objectReturnModel = searchFor instanceof Array;
-                const query = objectReturnModel ? searchFor : [searchFor];
-                
+                const objectReturnMode = searchFor instanceof Array;
+                const query = objectReturnMode ? searchFor : [searchFor];
+                const returnBuffer = {};
                 // user runs this function
-                const promiseBuilder = () => new Promise(resolve => {
+                const onFound = userCallback => {
+                    
+                    const checkBuffer = () => {
+                        _.forEach(this.canvasModel, (value, key) => {
+                            // console.log('checking: ', property)
+                            const i = query.indexOf(key);
+                            if(i != -1)
+                            {
+                                returnBuffer[key] = value;
+                                query.splice(i, 1);
+                            }
+                        });
+                    };
+                    checkBuffer();
+                    // already exists in buffer.
+                    if(query.length == 0)
+                        return userCallback(objectReturnMode ? returnBuffer : _.toArray(returnBuffer)[0]);
+                    
 
-                });
-                return promiseBuilder;
+                    const onUpdate = property => {
+                        checkBuffer();
+                        if(query.length == 0)
+                        {
+                            // found everything.
+                            this.eventHandler.removeListener('model-value-add', onUpdate);
+                            // userCallback(objectReturnMode ? returnBuffer : returnBuffer[property.name]);
+                        }
+                    };
+                    // add a event listener.
+                    this.eventHandler.on('model-value-add', onUpdate);
+                };
+                return onFound;
             },
-            value: queryFor => {
-                const buffer = this.promptBuffer;
-                console.log('current buffer state: ', buffer);
-                return "<Could not find>";
+            /**
+             * TEST THIS.
+             */
+            event: name => {
+                const returnObject = userCallback => {
+                    return this.eventHandler.on(name, userCallback);
+                };
+                return returnObject;
+            },
+            clear: () => {},
+
+            /**
+             * For purpose of encapsulation / modular code.
+             * basically defines a fragment of the application.
+             */
+            fragment: requiredModelProperties => {
+                return fragmentRenderer => {
+                    this.userApi().model(requiredModelProperties)(modelFragment => fragmentRenderer(this.userApi(), modelFragment));
+                };
             },
         }
     };
