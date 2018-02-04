@@ -40,6 +40,7 @@ class CanvasModel {
         this.startLoop = this.startLoop.bind(this);
         this.stopLoop = this.stopLoop.bind(this);
         this.linesWithPrompts = this.linesWithPrompts.bind(this);
+        this.clearCanvas = this.clearCanvas.bind(this);
         // this.clearCanvas = this.clearCanvas.bind(this);
         this.interval;
         // this.render();
@@ -75,6 +76,13 @@ class CanvasModel {
         this.lines = [];
     }
     
+    clearCanvas() 
+    {
+        // readline.moveCursor(process.stdout, 0, -1)
+        this.clearBuffers();
+        readline.clearScreenDown(process.stdout, 1);
+    }
+
     linesWithPrompts()
     {
         return _.without(_.map(this.lines, line => !!line.prompt ? line : null), null);
@@ -89,13 +97,13 @@ class CanvasModel {
         // readline.clearScreenDown(process.stdout);
         
         // explore using canvas.clear() so users can have a log of their canvas if they want.
-        this.clearBuffers();
+        // this.clearBuffers();
         const userRender = this.userCanvasFactory( this.userApi() );
-        const resetCursor = () => readline.moveCursor(process.stdout, 0, -(this.lines.length));
+        
 
-        if(!this.firstRender)
-            resetCursor();
-        readline.clearScreenDown(process.stdout);
+        // if(!this.firstRender)
+            
+        
         let restartLoopAfterFinish = false;
 
         for(const line of this.lines)
@@ -207,7 +215,9 @@ class CanvasModel {
                 };
                 return returnObject;
             },
-            clear: () => {},
+            clear: () => {
+                this.clearCanvas()
+            },
 
             /**
              * For purpose of encapsulation / modular code.
