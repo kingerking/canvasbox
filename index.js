@@ -44,8 +44,13 @@ class CanvasModel {
         this.linesWithPrompts = this.linesWithPrompts.bind(this);
         this.clearCanvas = this.clearCanvas.bind(this);
         this.modelUpdateRender = this.modelUpdateRender.bind(this);
+        this.selectionPromptFieldLengths = this.selectionPromptFieldLengths.bind(this);
         this.invokeAndDeleteAbortionHandlers = this.invokeAndDeleteAbortionHandlers.bind(this);
+        // the total number of selection fields in 'all' prompt's being rendered.
+        this.lastSelectionField = null;
         this.currentLine = 0;
+        this.renderCount = 0;
+        this.linesRendered = 0;
         // this.clearCanvas = this.clearCanvas.bind(this);
         this.interval;
         // this.render();
@@ -57,12 +62,12 @@ class CanvasModel {
         this.renderPromise = null;
         process.stdin.setRawMode(true);
         process.stdin.on('keypress', (str, key) => key.ctrl && key.name == 'c' ? process.exit() : null);
-
+        this.end = false;
     }
 
     startLoop() 
     {
-
+        if(this.end) return;
         
         const prom = new Promise(resolve => {
             this.renderPromise = this.render().then(() => resolve());
@@ -96,14 +101,32 @@ class CanvasModel {
     clearBuffers() 
     {
         this.invokeAndDeleteAbortionHandlers();
+        this.promptSelectionFieldLength = 0;
         this.lines = [];
     }
     
+    selectionPromptFieldLengths()
+    {
+        let buffer = 0;
+        // console.log('iterating through: ', this.linesWithPrompts());
+        const selectionPrompts = _.map(this.linesWithPrompts(), line => {
+            const {prompt} = line;
+            buffer += prompt.selectionFieldLength; 
+        });
+        return buffer;
+    }
+
     clearCanvas() 
     {
-        readline.moveCursor(process.stdout, -1, -((this.lines.length) + this.linesWithPrompts().length))
+        if(this.firstRender) return;
+        // console.log(this.selectionPromptFieldLengths());
+        readline.moveCursor(process.stdout, 0, -(this.linesRendered));
+        // process.stdout.cursorTo(-1); 
+        readline.clearScreenDown(process.stdout);
+        
         this.clearBuffers();
-        readline.clearScreenDown(process.stdout, 1);
+        // console.log("Clearing ", this.linesRendered);
+        this.linesRendered = 0;
     }
 
     linesWithPrompts()
@@ -156,21 +179,33 @@ class CanvasModel {
         const newAborters = {};
         for(const line of this.lines)
         {
+            // readline.moveCursor(process.stdout, 0, 1);
             this.currentLine = this.lines.indexOf(line);
             if(!!line.prompt)
             {
+                // readline.moveCursor(process.stdout, 0, 1);
+                readline.cursorTo(process.stdout, 0);
                 const abortionHandler = new EventEmitter();
                 newAborters[line.prompt.name] = abortionHandler;
                 this.aborters = newAborters;
-                if(this.canvasModel == undefined)
-                    this.canvasModel = {};
-                const startWith = (this.canvasModel && this.canvasModel[line.prompt.name] ? 
+                // if(this.canvasModel == undefined)
+                //     this.canvasModel = {};
+                const startWith = (this.canvasModel && this.canvasModel[line.prompt.name] && 
+                    // meaning this is a selection prompt.
+                    !(this.canvasModel[line.prompt.name] instanceof Object) ? 
                     this.canvasModel[line.prompt.name] : "");
                     
                 const returned = await Prompt(line.baseContents + " ", _.merge(line.prompt.options, {
-                    startWith,
-                    abortHandler: abortionHandler
+                    startWith: line.prompt.selectionFieldLength ? undefined : startWith,
+                abortHandler: abortionHandler
                 }));
+                this.eventHandler.emit('submit', {
+                    target: line.prompt.name,
+                    value: this.canvasModel[line.prompt.name]
+                });
+                
+                if(this.canvasModel[line.prompt.name] instanceof Object)
+                    this.lastSelectionField = this.canvasModel[line.prompt.name];
                 // console.log('d')
                 // console.log("new canvas model property: ", returned);
                 this.canvasModel[line.prompt.name] = returned;
@@ -182,11 +217,14 @@ class CanvasModel {
                 // this.eventHandler.emit('model-update', this.canvasModel);
                 // delete abortion handler.
                 this.aborters[line.prompt.name] = undefined;
-                process.stdout.write(" \n");
+                // process.stdout.write("\n");
+                this.linesRendered++;
+                // readline.moveCursor(process.stdout, 0, 1);
                 continue;
             }
             
-            process.stdout.write(line.baseContents + " \n");
+            process.stdout.write(line.baseContents + "\n");
+            this.linesRendered++;
         }
 
         
@@ -195,6 +233,7 @@ class CanvasModel {
         //     this.startLoop();
 
         this.firstRender = false;
+        this.renderCount++;
         return this.eventHandler.emit('after-render');
       
     }
@@ -223,7 +262,10 @@ class CanvasModel {
             /**
              * Exit the canvas
              */
-            end: () => clearInterval(this.interval),
+            end: () => {
+                this.stopLoop();
+                this.end = true;
+            },
             /**
              * Will construct a prompt schema. pass the schema into a write call as the second paramter and
              * the prompt will be executed.
@@ -232,9 +274,9 @@ class CanvasModel {
                 return promptOptions => {
                     if(promptOptions instanceof Array)
                     {
-                        promptOptions = {
-                            selectable: promptOptions
-                        };
+                        const selectionFieldLength = promptOptions.length;
+                        promptOptions = { selectable: promptOptions };
+                        promptOptions.selectionFieldLength = selectionFieldLength;
                         if(!!extraOptions[0] && extraOptions[0] instanceof Boolean)
                         {
                             console.log("enabling multiselection mode.")
@@ -247,11 +289,11 @@ class CanvasModel {
                         promptOptions.keyboardEvent = (str, key) => {
                             // console.log("key: ", key);
                             console.log("updating from ", this.canvasModel[name]);
-                            if(this.canvasModel == undefined)
+                            /*if(this.canvasModel == undefined)
                             {
                                 this.canvasModel = {};
                                 this.canvasModel[name] = "";
-                            } else if(this.canvasModel && !this.canvasModel[name])
+                            } else */if(this.canvasModel && !this.canvasModel[name])
                                 this.canvasModel[name] = "";
 
                             
@@ -280,6 +322,9 @@ class CanvasModel {
                         name, options: !!promptOptions ? promptOptions : {}
                     };
                 };
+            },
+            getModel: () => {
+                return this.canvasModel;
             },
             /**
              * Require a model value
@@ -328,15 +373,23 @@ class CanvasModel {
              * Set a model value.
              */
             set: modelKey => {
-                if(!this.canvasModel) this.canvasModel = {};
+                // if(!this.canvasModel) this.canvasModel = {};
                 return value => this.canvasModel[modelKey] = value;
             },
             /**
              * TEST THIS.
              */
-            event: name => {
+            event: (name, target) => {
+                const getEventHandler = callback => {
+                    if(target instanceof Object && target.name)
+                        return event => {
+                            if(target.name == event.target)
+                                return callback(event);
+                        }
+                    return callback;
+                };
                 const returnObject = userCallback => {
-                    return this.eventHandler.on(name, userCallback);
+                    return this.eventHandler.on(name, getEventHandler(userCallback));
                 };
                 return returnObject;
             },
@@ -369,7 +422,10 @@ class LineModel {
         this.currentLineValue = baseContents;
         
         this.userApi = this.userApi.bind(this);
-        
+        if(!this.prompt)
+            this.parentModel.linesRendered++;
+        else if(this.prompt.options && this.prompt.options.selectionFieldLength)
+            this.parentModel.linesRendered += this.prompt.options.selectionFieldLength + 1;
         // console.log("Rendered one");
         // if(baseContents instanceof String)
         parentModel.lines.push(this);
