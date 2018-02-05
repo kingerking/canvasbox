@@ -1,7 +1,7 @@
 {
   "name": "canvasbox",
   "version": "1.0.0",
-  "description": "A smart console output / renderer for the commandline",
+  "description": "A smart extendable Canvas framework.",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -21,7 +21,9 @@
     "toolset",
     "tool",
     "output-manager",
-    "output"
+    "output",
+    "framework",
+    "extendable"
   ],
   "author": "Kyle King",
   "license": "GPL-3.0",
