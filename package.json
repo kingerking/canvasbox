@@ -38,6 +38,6 @@
   },
   "devDependencies": {
     "chalk": "^2.3.0",
-    "input-promptify": "^1.1.1"
+    "input-promptify": "^1.1.4"
   }
 }
