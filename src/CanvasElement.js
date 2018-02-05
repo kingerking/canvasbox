@@ -35,9 +35,8 @@ class CanvasElement
     textPromptRender(properties)
     {
         return new Promise(resolve => {
-            this.canvas.renderer.renderLine("Prompt Render!", 
-            ...properties    
-            ).then(resolve);
+            this.canvas.renderer.renderLine(this.renderBuffer[0], properties, 
+                this.canvas.property('isPrompt', true)).then(resolve);
         });
     }
 

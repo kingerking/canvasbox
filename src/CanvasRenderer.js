@@ -33,22 +33,9 @@ class CanvasRenderer
     clearLines()
     {
         if(this.firstRender)
-        {
-            this.firstRender = false;
-            return;
-        }
-        const lineCount = this.lineCount;
-        // console.log(chalk.red("lines to clear"), lineCount);
-        // for(let i = 0; i <= lineCount; i++)
-        // {
-            // move down one to start
-            // readline.moveCursor(process.stdout, 0, 1);
-            // readline.clearLine(process.stdout);
-            // readline.moveCursor(process.stdout, 0, -1);
-            // readline.cursorTo(process.stdout, 0);
-            readline.moveCursor(process.stdout, 0, -(this.lineCount));
-            readline.clearScreenDown(process.stdout);
-        // }
+        { this.firstRender = false; return; }
+        readline.moveCursor(process.stdout, 0, -(this.lineCount));
+        readline.clearScreenDown(process.stdout);
         this.lineCount = 0;
     }
 
@@ -60,15 +47,24 @@ class CanvasRenderer
     {
         const events = new EventEmitter();
         return new Promise(resolve => {
-            const { meta } = this.canvas.compileProperties(properties);
+            // console.log("g: ", this.canvas.compileProperties(properties))
+            const { lineData, isPrompt } = this.canvas.compileProperties(properties);
             // incroment based on how many lines was drawn.
             this.lineCount++;
-            process.stdout.write(meta.lineData);
-            // readline.moveCursor(process.stdout, 0, 1);
-            readline.cursorTo(process.stdout, 0);
+            process.stdout.write(lineData);
             
-            process.stdout.write('\n');
-            resolve();
+            if(!isPrompt)
+            {
+                // readline.moveCursor(process.stdout, 0, 1);
+                readline.cursorTo(process.stdout, 0);
+                
+                process.stdout.write('\n');
+                resolve();
+                return;
+            } else if(isPrompt)
+            {
+                console.log("Found prompt!");
+            }
             
 
         });
@@ -82,15 +78,7 @@ class CanvasRenderer
     renderLine(lineData, ...properties)
     {
         return new Promise(resolve => {
-            // compile the user properties
-            const props = this.canvas.compileProperties(properties);
-            
-            this.input(
-                // pass the render call's meta data into the render input middleware
-                this.canvas.property('meta', { lineData, props })
-            ).then(resolve);
-
-            
+            this.input(...properties, this.canvas.property('lineData', lineData)).then(resolve);
         });
     }
     
