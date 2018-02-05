@@ -34,10 +34,11 @@ class CanvasElement
      */
     textPromptRender()
     {
-        this.canvas.renderer.renderLine("Prompt Render!" 
-            // this.canvas.property('end-of-line', )
-        );
-
+        return new Promise(resolve => {
+            this.canvas.renderer.renderLine("Prompt Render!" 
+                // this.canvas.property('end-of-line', )
+            ).then(resolve);
+        });
     }
 
     /**
@@ -45,19 +46,19 @@ class CanvasElement
      */
     simpleRender()
     {
-        this.canvas.renderer.renderLine(this.renderBuffer[0]);
+        return new Promise(resolve => {
+            this.canvas.renderer.renderLine(this.renderBuffer[0]).then(resolve);
+        });
     }
 
     /**
      * Render every line in the render buffer.
      */
-    renderLines()
+    async renderLines()
     {
-        
-        this.renderBuffer.forEach((line, index) => {
-            // await line to render
-            this.canvas.renderer.renderLine(line);
-        });
+        for(const line in this.renderBuffer)
+            await this.canvas.renderer.renderLine(line);
+        return;
     }
 
     /**

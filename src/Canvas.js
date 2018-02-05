@@ -148,6 +148,7 @@ class Canvas {
         this.factory(this.builder);
         for(let i = 0; i < this.elements.length; i++)
             await this.elements[i].render();
+        return;
     }
 
     /**
