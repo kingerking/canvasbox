@@ -78,15 +78,17 @@ class CanvasBuilder {
      */
     model(...required)
     {
-        // invoke user factory when the model contains the required values.
-        return (factory = () => {}, fallback) => {
+        // if user passes nothing then return the current state of model.
+        if(required.length == 0)
+            return this.canvas.model;
 
+        // invoke user factory when the model contains the required values.
+        return (factory, fallback) => {
             // User is setting the model to the value of factory.
-            if(!(factory instanceof Function) && required.length == 1)
-            {
+            if(required.length == 1 && !(factory instanceof Function) && required.length == 1)
                 // update the value and return.
                 return this.canvas.updateModelValue(this.property(required[0], factory));
-            }
+            
             // user wants to invoke a factory function if all values exist.
             const returnBuffer = {};
             // iterate through the required values.
@@ -99,11 +101,10 @@ class CanvasBuilder {
             // if the return buffer size is equal to the required value size(meaning found all values) then run the user factory with the returnBuffer.
             if(_.size(returnBuffer) == required.length)
             {
-                factory(returnBuffer);
+                if(factory) factory(returnBuffer);
                 return returnBuffer;
             } // if not all required values are present the render a fallback.
             else if(fallback) fallback();
-            
         };  
     }
 

@@ -69,6 +69,7 @@ class Canvas {
     {
         this.model = _.merge(this.model, property);
         // console.log("new model: ", this.model);
+        // console.log("new model: ", this.model);
         this.eventHandler.emit('render');
     }
 
