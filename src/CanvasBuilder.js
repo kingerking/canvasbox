@@ -16,7 +16,6 @@ class CanvasBuilder {
     bindMethods()
     {
         this.clear = this.clear.bind(this);
-        this.property = this.property.bind(this);
         this.prompt = this.prompt.bind(this);
         this.write = this.write.bind(this);
         this.model = this.model.bind(this);
@@ -45,8 +44,7 @@ class CanvasBuilder {
      * @param {*} key 
      * @param {*} value 
      */
-    property(key, value)
-    { return { [key]: value } }
+    
 
     /**
      * Will clear all previous output.
@@ -85,9 +83,15 @@ class CanvasBuilder {
         // invoke user factory when the model contains the required values.
         return (factory, fallback) => {
             // User is setting the model to the value of factory.
-            if(required.length == 1 && !(factory instanceof Function) && required.length == 1)
+            if(required.length == 1 && !factory && !fallback && !(factory instanceof Function))
+            {
+                // pull value off the model
+                const value = this.canvas.model[required[0]];
+                return value ? value : "";
+            }
+            else if(required.length == 1 && factory && !(factory instanceof Function))
                 // update the value and return.
-                return this.canvas.updateModelValue(this.property(required[0], factory));
+                return this.canvas.updateModelValue(this.canvas.property(required[0], factory));
             
             // user wants to invoke a factory function if all values exist.
             const returnBuffer = {};
@@ -104,12 +108,12 @@ class CanvasBuilder {
                 if(factory) factory(returnBuffer);
                 return returnBuffer;
             } // if not all required values are present the render a fallback.
-            else if(fallback) fallback();
+            else {
+                if(fallback) fallback();
+                return returnBuffer;
+            }
         };  
     }
 
 }
-let instance=  new CanvasBuilder();
-
-
 module.exports = CanvasBuilder;

@@ -71,9 +71,17 @@ class Canvas {
         this.holdProcess = this.holdProcess.bind(this);
         this.stopProcess = this.stopProcess.bind(this);
         this.init = this.init.bind(this);
-
+        this.property = this.property.bind(this);
         this.updateModelValue = this.updateModelValue.bind(this);
     }
+
+    /**
+     * Create a basic key-value-pair
+     * @param {*} key Key of model field.
+     * @param {*} value Value of model field.
+     */
+    property(key, value)
+    { return { [key]: value } }
 
     /**
      * Internal for updatting the model. make sure to use this method since it will invoke a render event upon invoking it.
@@ -131,14 +139,15 @@ class Canvas {
     /**
      * Will handle the re-drawing process.
      */
-    render()
+    async render()
     {
         this.clearEvents();
         this.clearElements();
         
         // invoke user factory object. will create elements in the buffer.
         this.factory(this.builder);
-        this.elements.forEach(element => element.render());
+        for(let i = 0; i < this.elements.length; i++)
+            await this.elements[i].render();
     }
 
     /**

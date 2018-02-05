@@ -23,15 +23,53 @@ class CanvasElement
     bindMethods()
     {
         this.render = this.render.bind(this);
+        // this.constructPrompt = this.constructPrompt.bind(this);
+        this.textPromptRender = this.textPromptRender.bind(this);
+        this.simpleRender = this.simpleRender.bind(this);
+        this.renderLines = this.renderLines.bind(this);
+    }
+
+    /**
+     * If this controls a text prompt then render it.
+     */
+    textPromptRender()
+    {
+        this.canvas.renderer.renderLine("Prompt Render!" 
+            // this.canvas.property('end-of-line', )
+        );
+
+    }
+
+    /**
+     * Render the 0 index of renderBuffer. this is basic rendering
+     */
+    simpleRender()
+    {
+        this.canvas.renderer.renderLine(this.renderBuffer[0]);
+    }
+
+    /**
+     * Render every line in the render buffer.
+     */
+    renderLines()
+    {
+        
+        this.renderBuffer.forEach((line, index) => {
+            // await line to render
+            this.canvas.renderer.renderLine(line);
+        });
     }
 
     /**
      * Render this item.
      */
-    render()
+    async render()
     {
         const renderer = this.canvas.renderer;
-        this.renderBuffer.forEach(line => renderer.renderLine(line));
+        if(!this.prompt)
+            return await this.simpleRender();
+        else
+            return await this.textPromptRender();
     }
 
 }

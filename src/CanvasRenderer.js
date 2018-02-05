@@ -51,10 +51,13 @@ class CanvasRenderer
         // render output
         process.stdout.write(lineData);
         // move cursor down a line.
+        // prompting here.
+
         readline.moveCursor(process.stdout, 0, 1);
         // set cursor to start of line.
         readline.cursorTo(process.stdout, 0);
         // move line down.
+        
     }
     
 }
