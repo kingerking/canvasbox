@@ -15,6 +15,7 @@ class CanvasRenderer
         this.bindMethods.bind(this)();
         this.canvas = canvas;
         this.lineCount = 0;
+        this.firstRender = true;
     }
 
     bindMethods()
@@ -31,14 +32,23 @@ class CanvasRenderer
      */
     clearLines()
     {
+        if(this.firstRender)
+        {
+            this.firstRender = false;
+            return;
+        }
         const lineCount = this.lineCount;
         // console.log(chalk.red("lines to clear"), lineCount);
-        for(let i = lineCount - 1; i >= 0; i--)
-        {
-            readline.clearLine(process.stdout);
-            readline.moveCursor(process.stdout, 0, -1);
-            readline.cursorTo(process.stdout, 0);
-        }
+        // for(let i = 0; i <= lineCount; i++)
+        // {
+            // move down one to start
+            // readline.moveCursor(process.stdout, 0, 1);
+            // readline.clearLine(process.stdout);
+            // readline.moveCursor(process.stdout, 0, -1);
+            // readline.cursorTo(process.stdout, 0);
+            readline.moveCursor(process.stdout, 0, -(this.lineCount));
+            readline.clearScreenDown(process.stdout);
+        // }
         this.lineCount = 0;
     }
 
@@ -50,12 +60,17 @@ class CanvasRenderer
     {
         const events = new EventEmitter();
         return new Promise(resolve => {
-
             const { meta } = this.canvas.compileProperties(properties);
+            // incroment based on how many lines was drawn.
+            this.lineCount++;
+            process.stdout.write(meta.lineData);
+            // readline.moveCursor(process.stdout, 0, 1);
+            readline.cursorTo(process.stdout, 0);
             
-            // if this is not a prompt, then dont handle input and simply resolve so we can render next line.
-            if(!meta.props.isTextPrompt)
-                resolve();
+            process.stdout.write('\n');
+            resolve();
+            
+
         });
     }
     
@@ -67,26 +82,15 @@ class CanvasRenderer
     renderLine(lineData, ...properties)
     {
         return new Promise(resolve => {
-            this.lineCount++;
             // compile the user properties
             const props = this.canvas.compileProperties(properties);
-            // render output
-            process.stdout.write(lineData);
             
-            // prompting here.
-            const { property } = this.canvas;
             this.input(
                 // pass the render call's meta data into the render input middleware
-                property('meta', { lineData, props })
-            ).then(() => {
-                // move cursor down a line.
-                readline.moveCursor(process.stdout, 0, 1);
-                // set cursor to start of line.
-                readline.cursorTo(process.stdout, 0);
-                // move line down.
-                resolve();
-            });
+                this.canvas.property('meta', { lineData, props })
+            ).then(resolve);
 
+            
         });
     }
     

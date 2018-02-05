@@ -32,11 +32,11 @@ class CanvasElement
     /**
      * If this controls a text prompt then render it.
      */
-    textPromptRender()
+    textPromptRender(properties)
     {
         return new Promise(resolve => {
-            this.canvas.renderer.renderLine("Prompt Render!" 
-                // this.canvas.property('end-of-line', )
+            this.canvas.renderer.renderLine("Prompt Render!", 
+            ...properties    
             ).then(resolve);
         });
     }
@@ -44,33 +44,35 @@ class CanvasElement
     /**
      * Render the 0 index of renderBuffer. this is basic rendering
      */
-    simpleRender()
+    simpleRender(properties)
     {
         return new Promise(resolve => {
-            this.canvas.renderer.renderLine(this.renderBuffer[0]).then(resolve);
+            this.canvas.renderer.renderLine(this.renderBuffer[0], properties).then(resolve);
         });
     }
 
     /**
      * Render every line in the render buffer.
      */
-    async renderLines()
+    async renderLines(properties)
     {
         for(const line in this.renderBuffer)
-            await this.canvas.renderer.renderLine(line);
+            await this.canvas.renderer.renderLine(line, properties);
+        // process.stdout.write('\n');
         return;
     }
 
     /**
      * Render this item.
      */
-    async render()
+    async render(...properties)
     {
+        properties = this.canvas.compileProperties(properties);
         const renderer = this.canvas.renderer;
         if(!this.prompt)
-            return await this.simpleRender();
+            return await this.simpleRender(properties);
         else
-            return await this.textPromptRender();
+            return await this.textPromptRender(properties);
     }
 
 }

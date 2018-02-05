@@ -24,6 +24,7 @@ class Canvas {
         this.options = options;
         this.builder = new CanvasBuilder(this);
         this.renderer = new CanvasRenderer(this);
+        
         // elements to render.
         this.elements = [];
         // main model for data storage.
@@ -38,7 +39,7 @@ class Canvas {
     init()
     {
         // hide the cursor
-        cliCursor.hide();
+        // cliCursor.hide();
         // start holding the process.
         this.holdProcess();
         // setup initial events
@@ -146,8 +147,13 @@ class Canvas {
         
         // invoke user factory object. will create elements in the buffer.
         this.factory(this.builder);
-        for(let i = 0; i < this.elements.length; i++)
-            await this.elements[i].render();
+        // console.log()
+        for(const canvasElement of this.elements)
+            (await canvasElement.render(
+                this.property('lines', this.elements)
+            ));
+        // console.log("\nDone render");
+        // process.stdout.write('\n');
         return;
     }
 
@@ -157,9 +163,11 @@ class Canvas {
      */
     compileProperties(props)
     {
-        const allProps = {};
+        let allProps = {};
         // build object from Array<Key-Value-Pair>'s
-        props.forEach(elem => allProps[elem.name] = elem.value );
+        _.forEach(props, p => {
+           allProps = _.merge(allProps, p); 
+        });
         return allProps;
     }
 

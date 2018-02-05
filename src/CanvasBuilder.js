@@ -19,6 +19,7 @@ class CanvasBuilder {
         this.prompt = this.prompt.bind(this);
         this.write = this.write.bind(this);
         this.model = this.model.bind(this);
+        this.forceRender = this.forceRender.bind(this);
     }
 
     /**
@@ -113,6 +114,10 @@ class CanvasBuilder {
                 return returnBuffer;
             }
         };  
+    }
+    forceRender()
+    {
+        this.canvas.eventHandler.emit('render');
     }
 
 }
