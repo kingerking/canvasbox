@@ -37,11 +37,25 @@ class Canvas {
 
     init()
     {
-        // cliCursor.hide();
+        // hide the cursor
+        cliCursor.hide();
         // start holding the process.
         this.holdProcess();
         // setup initial events
         this.setupInternalEvents();
+        // allow readline to emit key events.
+        readline.emitKeypressEvents(process.stdin);
+        // setup stdin keyboard events. - do not remove this listener on re-render...
+        process.stdin.on('keypress', (str, key) => {
+            switch(key.name)
+            {
+                case "c":
+                    if(key.ctrl)
+                        this.stopProcess();
+                    break;
+            }
+        });
+
         // initial render
         this.eventHandler.emit('render');
     }
@@ -78,11 +92,12 @@ class Canvas {
         this.processHolder = setInterval(() => {}, 50000);
         process.stdin.setRawMode(true);
     }
-
+    
     stopProcess()
     {
         clearInterval(this.processHolder);
         process.stdin.setRawMode(false);
+        process.exit();
     }
 
     /**
@@ -91,6 +106,7 @@ class Canvas {
     clearEvents()
     {
         this.eventHandler.removeAllListeners('render');
+        this.eventHandler.removeAllListeners('key');
 
         this.setupInternalEvents();
     }

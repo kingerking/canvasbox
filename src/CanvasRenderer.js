@@ -48,11 +48,13 @@ class CanvasRenderer
     {
         this.lineCount++;
         const props = this.canvas.compileProperties(properties);
+        // render output
         process.stdout.write(lineData);
-        // move line down.
+        // move cursor down a line.
         readline.moveCursor(process.stdout, 0, 1);
         // set cursor to start of line.
         readline.cursorTo(process.stdout, 0);
+        // move line down.
     }
     
 }

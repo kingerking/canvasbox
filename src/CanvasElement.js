@@ -4,6 +4,7 @@ const { EventEmitter } = require('events');
 /**
  * Represents a target that can be rendered to the screen.
  * This includes a prompt, text, text input prompt, etc...
+ * Notes: this.renderBuffer[0] will always be the first arg in first function.
  */
 class CanvasElement
 {   
