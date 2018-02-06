@@ -24,8 +24,9 @@ class CanvasRenderer
     {
         this.clearLines = this.clearLines.bind(this);
         this.renderLine = this.renderLine.bind(this);
-        this.input = this.input.bind(this);
-        this.renderPrompt = this.renderPrompt.bind(this);
+        this.renderSchema = this.renderSchema.bind(this);
+        this.newLine = this.newLine.bind(this);
+        this.write = this.write.bind(this);
     }
 
     
@@ -43,102 +44,45 @@ class CanvasRenderer
     }
 
     /**
-     * This will pause and invoke the callbacks in the properties until user calls the end method().
-     * @param {*} properties 
+     * Simply write a buffer to the screen
+     * @param {*} data buffer to write.
      */
-    input(...properties)
+    write(data)
+    { process.stdout.write(data) }
+
+    /**
+     * This Will create a new line to write.
+     */
+    newLine()
     {
-        const events = new EventEmitter();
-        return new Promise(resolve => {
-            // console.log("g: ", this.canvas.compileProperties(properties))
-            const compiledProperties = this.canvas.compileProperties(properties);
-            const { element } = compiledProperties;
-            const { property } = this.canvas;
-
-            // incroment based on how many lines was drawn.
-            this.lineCount++;
-            process.stdout.write(element.renderBuffer[0]);
-
-            if(!element.prompt)
-            {
-                // this.lineCount++;
-                // regular render.
-                process.stdout.write('\n');
-                readline.cursorTo(process.stdout, 0);
-                resolve();
-                return;
-            } else if(element.prompt)
-                this.renderPrompt(compiledProperties).then(resolve);
-            
-            
-
-        });
+        process.stdout.write('\n');
+        readline.cursorTo(process.stdout, 0);
+        this.lineCount++;
     }
     
     /**
      * This will render a line to the screen.
-     * Note: for rendering prompt you should still go through this method because it runs the 
-     * necessary internal operations to properly handle a prompt
      * @param {*} lineData The data to render
      * @param {*} properties Any extra CanvasProperty()'s. (may include data for rendering prompts)
      */
-    renderLine(element, ...properties)
+    renderLine(lineData, ...properties)
     {
-        return new Promise(resolve => {
-            this.input(properties, this.canvas.property('element', element)).then(resolve);
-        });
+        this.write(lineData);
     }
 
-    renderPrompt({ element })
+    /**
+     * Will Render a schema and continue rendering after its .promise is resolved. the new line will be appended upon .resolve.
+     * @param {*} element The element containing the schema to render
+     * @param {*} properties render properties
+     */
+    renderSchema(element, ...properties)
     {
-        const resolvePromptToNextItem = resolve => {
-            cliCursor.hide();
-            // regular render.
-            process.stdout.write('\n');
-            readline.cursorTo(process.stdout, 0);
-            // process.stdout.write('\n');
-            resolve();
-        };
-
         return new Promise(resolve => {
-            const { prompt } = element;
-            const { property } = this.canvas;
-            cliCursor.show();
+            const props = this.canvas.compileProperties(properties);
+            this.renderLine(element.writeSchema.name);
 
-            // current value of model buffer.
-            let currentValue = this.canvas.builder.model(prompt.name)().split("");
-            // render current value.
-            process.stdout.write(currentValue.join(""));
-            // resolve to next prompt if this prompt has been completed.
-            
-            if(!this.canvas.promptManager.isCurrent(prompt))
-                return resolvePromptToNextItem(resolve);
-            
-
-            CanvasInputManager(this.canvas) (
-                // on key down event
-                property('key', (key, doReturn) => { 
-        // TODO: make this work good. find solution for the problem where if i update the model while typing 
-        // i will have to go through all the prompts again but at same time i want to auto update fields in the canvas to reflect.
-                    if(key.name == 'return')
-                    {
-                        this.canvas.promptManager.finish(prompt);
-                        return doReturn();
-                    }
-                    else
-                    {
-                        // so it looks like the cursor is on a line
-                        process.stdout.write('\n');
-                        currentValue.push(key.name);
-                        this.canvas.builder.model(prompt.name)(currentValue.join(""));
-                        return resolve();
-                    }
-                }),
-                property('load', (doReturn) => {
-                    
-                    
-                })
-            ).then(() => resolvePromptToNextItem(resolve));
+            // remember resolve when to render next.
+            resolve();
         });
     }
     

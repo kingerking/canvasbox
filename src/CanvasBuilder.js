@@ -48,9 +48,7 @@ class CanvasBuilder {
         element.options = options;
         // if your rendering a prompt then pass the prompt schema into this.
         return schema => {
-            element.prompt = schema;
-            if(element.prompt)
-                this.canvas.promptCount++;
+            element.writeSchema = schema;
         };
     }
 

@@ -15,16 +15,25 @@ class CanvasElement
         this.eventHandler = new EventEmitter();
         // all lines this will render.
         this.renderBuffer = [];
-        this.prompt = undefined;
+        this.writeSchema = undefined;
         this.canvas.registerElement(this);
     }
+
+    /**
+     * This is a lazy fix since i wanted to change to a schema based approch but was too lazy to rewrite the renderer
+     */
+    get prompt()
+    {
+        return this.writeSchema;
+    }
+
     /**
      * Bind all local methods.
      */
     bindMethods()
     {
         this.render = this.render.bind(this);
-        // this.constructPrompt = this.constructPrompt.bind(this);
+        this.renderPromiseSchema = this.renderPromiseSchema.bind(this);
         this.simpleRender = this.simpleRender.bind(this);
     }
 
@@ -35,7 +44,24 @@ class CanvasElement
     simpleRender(properties)
     {
         return new Promise(resolve => {
-            this.canvas.renderer.renderLine(this, properties).then(resolve);
+            this.canvas.renderer.renderLine(this.renderBuffer[0], properties);
+            this.canvas.renderer.newLine();
+            resolve();
+        });
+    }
+
+    /**
+     * This will invoke a schema render proccess with the schema.promise propertiy and continue rendering when said promise resolves.
+     * @param {*} properties 
+     */
+    renderPromiseSchema(properties)
+    {
+        const { renderer } = this.canvas;
+        return new Promise(resolve => {
+            renderer.renderSchema(this, properties).then(() => {
+                renderer.newLine();
+                resolve();
+            });
         });
     }
 
@@ -47,10 +73,10 @@ class CanvasElement
         // properties = this.canvas.compileProperties(properties);
         
         const renderer = this.canvas.renderer;
-        // if(!this.prompt)
-        return await this.simpleRender(properties);
-        // else
-        //     return await this.textPromptRender(properties);
+        if(!this.writeSchema) // simple line render
+            return await this.simpleRender(properties);
+        else if(this.writeSchema)
+            return await this.renderPromiseSchema(properties);
         
     }
 

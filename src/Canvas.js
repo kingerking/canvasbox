@@ -29,8 +29,6 @@ class Canvas {
         
         // elements to render.
         this.elements = [];
-        // Number of prompts registered to be rendered, this is to keep track of when to reset them.
-        this.promptCount = 0;
         // main model for data storage.
         this.model = {};
         this.eventHandler = new EventEmitter();
