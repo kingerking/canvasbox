@@ -15,6 +15,7 @@ class CanvasElement
         this.eventHandler = new EventEmitter();
         // all lines this will render.
         this.renderBuffer = [];
+        this.prompt = undefined;
         this.canvas.registerElement(this);
     }
     /**
@@ -24,21 +25,9 @@ class CanvasElement
     {
         this.render = this.render.bind(this);
         // this.constructPrompt = this.constructPrompt.bind(this);
-        this.textPromptRender = this.textPromptRender.bind(this);
         this.simpleRender = this.simpleRender.bind(this);
-        this.renderLines = this.renderLines.bind(this);
     }
 
-    /**
-     * If this controls a text prompt then render it.
-     */
-    textPromptRender(properties)
-    {
-        return new Promise(resolve => {
-            this.canvas.renderer.renderLine(this.renderBuffer[0], properties, 
-                this.canvas.property('isPrompt', true)).then(resolve);
-        });
-    }
 
     /**
      * Render the 0 index of renderBuffer. this is basic rendering
@@ -46,19 +35,8 @@ class CanvasElement
     simpleRender(properties)
     {
         return new Promise(resolve => {
-            this.canvas.renderer.renderLine(this.renderBuffer[0], properties).then(resolve);
+            this.canvas.renderer.renderLine(this, properties).then(resolve);
         });
-    }
-
-    /**
-     * Render every line in the render buffer.
-     */
-    async renderLines(properties)
-    {
-        for(const line in this.renderBuffer)
-            await this.canvas.renderer.renderLine(line, properties);
-        // process.stdout.write('\n');
-        return;
     }
 
     /**
@@ -66,12 +44,14 @@ class CanvasElement
      */
     async render(...properties)
     {
-        properties = this.canvas.compileProperties(properties);
+        // properties = this.canvas.compileProperties(properties);
+        
         const renderer = this.canvas.renderer;
-        if(!this.prompt)
-            return await this.simpleRender(properties);
-        else
-            return await this.textPromptRender(properties);
+        // if(!this.prompt)
+        return await this.simpleRender(properties);
+        // else
+        //     return await this.textPromptRender(properties);
+        
     }
 
 }

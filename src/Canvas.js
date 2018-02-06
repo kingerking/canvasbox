@@ -39,7 +39,7 @@ class Canvas {
     init()
     {
         // hide the cursor
-        // cliCursor.hide();
+        cliCursor.hide();
         // start holding the process.
         this.holdProcess();
         // setup initial events
@@ -48,6 +48,7 @@ class Canvas {
         readline.emitKeypressEvents(process.stdin);
         // setup stdin keyboard events. - do not remove this listener on re-render...
         process.stdin.on('keypress', (str, key) => {
+            this.eventHandler.emit('key', str, key);
             switch(key.name)
             {
                 case "c":
@@ -88,12 +89,12 @@ class Canvas {
      * Internal for updatting the model. make sure to use this method since it will invoke a render event upon invoking it.
      * @param {*} property 
      */
-    updateModelValue(property)
+    updateModelValue(property, skipRenderCycle)
     {
         this.model = _.merge(this.model, property);
         // console.log("new model: ", this.model);
         // console.log("new model: ", this.model);
-        this.eventHandler.emit('render');
+        if(!skipRenderCycle) this.eventHandler.emit('render');
     }
 
     holdProcess()

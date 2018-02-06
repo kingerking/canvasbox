@@ -92,7 +92,7 @@ class CanvasBuilder {
             }
             else if(required.length == 1 && factory && !(factory instanceof Function))
                 // update the value and return.
-                return this.canvas.updateModelValue(this.canvas.property(required[0], factory));
+                return this.canvas.updateModelValue(this.canvas.property(required[0], factory), fallback);
             
             // user wants to invoke a factory function if all values exist.
             const returnBuffer = {};
