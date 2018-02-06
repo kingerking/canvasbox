@@ -10,7 +10,8 @@ module.exports = canvas => {
         return new Promise(resolve => {
             // pass resolve into the doReturn fields.
             const callbacks = canvas.compileProperties(userCallbacks);        
-            canvas.eventHandler.on('key', (str, key) => {
+            
+            canvas.eventHandler.once('key', (str, key) => {
                 if(callbacks['key'])
                     callbacks['key'](key, resolve);
             });

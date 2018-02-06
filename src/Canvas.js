@@ -9,6 +9,7 @@ const input = process.stdin;
 
 const CanvasBuilder = require('./CanvasBuilder');
 const CanvasRenderer = require('./CanvasRenderer');
+const PromptAccessControl = require('./CanvasPromptManager');
 
 
 /**
@@ -24,15 +25,18 @@ class Canvas {
         this.options = options;
         this.builder = new CanvasBuilder(this);
         this.renderer = new CanvasRenderer(this);
+        this.promptManager = new PromptAccessControl(this);
         
         // elements to render.
         this.elements = [];
+        // Number of prompts registered to be rendered, this is to keep track of when to reset them.
+        this.promptCount = 0;
         // main model for data storage.
         this.model = {};
         this.eventHandler = new EventEmitter();
         // will point to a interval to hold the process from exiting until CanvasBox is done rendering.
         this.processHolder = null;
-        
+        this.drawCount = 0;
         this.init();
     }
 
@@ -145,16 +149,15 @@ class Canvas {
     {
         this.clearEvents();
         this.clearElements();
-        
-        // invoke user factory object. will create elements in the buffer.
+        this.drawCount++;
         this.factory(this.builder);
-        // console.log()
+
         for(const canvasElement of this.elements)
             (await canvasElement.render(
-                this.property('lines', this.elements)
+                this.property('lines', this.elements),
+                this.property('drawCount', this.drawCount)
             ));
-        // console.log("\nDone render");
-        // process.stdout.write('\n');
+
         return;
     }
 

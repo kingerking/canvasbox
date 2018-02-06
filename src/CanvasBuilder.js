@@ -20,6 +20,18 @@ class CanvasBuilder {
         this.write = this.write.bind(this);
         this.model = this.model.bind(this);
         this.forceRender = this.forceRender.bind(this);
+        this.drawCount = this.drawCount.bind(this);
+        this.event = this.event.bind(this);
+    }
+
+    event(eventName)
+    {
+        /**
+         * @param userEventHandler the user event handler to invoke upon the target event emission
+         */
+        return userEventHandler => {
+            
+        };
     }
 
     /**
@@ -37,6 +49,8 @@ class CanvasBuilder {
         // if your rendering a prompt then pass the prompt schema into this.
         return schema => {
             element.prompt = schema;
+            if(element.prompt)
+                this.canvas.promptCount++;
         };
     }
 
@@ -115,6 +129,12 @@ class CanvasBuilder {
             }
         };  
     }
+
+    drawCount()
+    {
+        return this.canvas.drawCount;
+    }
+
     forceRender()
     {
         this.canvas.eventHandler.emit('render');
