@@ -72,6 +72,8 @@ class CanvasRenderer
 
     /**
      * Will Render a schema and continue rendering after its .promise is resolved. the new line will be appended upon .resolve.
+     * This will collect a key press then set the model to the value and the system will re-render.
+     * Schema's are promise based rendering api's witch allows for easy expansion. they use PromptManagers to handle witch is current schema.
      * @param {*} element The element containing the schema to render
      * @param {*} properties render properties
      */
@@ -79,10 +81,31 @@ class CanvasRenderer
     {
         return new Promise(resolve => {
             const props = this.canvas.compileProperties(properties);
-            this.renderLine(element.writeSchema.name);
+            // get current value from the model.
+            const modelValue = this.canvas.builder.model(element.writeSchema.name)();
+            // write the prefix and current model value to the screen.
+            this.renderLine(element.renderBuffer[0] + modelValue);
+            // create a new line
+            this.newLine();
+            // if this isnt the current prompt to render then resolve and continue.
+            if(!this.canvas.promptManager.isCurrent(element.writeSchema))
+                return resolve();
+            
 
-            // remember resolve when to render next.
-            resolve();
+            // if this is the current prompt then collect a key.
+            CanvasInputManager(this.canvas).collectKey().then(key => {
+                // DO NOT RESOLVE UNLESS RETURN IS PRESSED
+                if(key.name == 'return')
+                {
+                    this.canvas.promptManager.finish(element.writeSchema);
+                    return resolve();
+                }
+                // check for enter, if not set model value, then return.
+                this.canvas.builder.model(element.writeSchema.name)(modelValue + key.name);
+                // remember resolve when to render next.
+                // resolve();
+            });
+
         });
     }
     

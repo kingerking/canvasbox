@@ -59,7 +59,7 @@ class CanvasElement
         const { renderer } = this.canvas;
         return new Promise(resolve => {
             renderer.renderSchema(this, properties).then(() => {
-                renderer.newLine();
+                // renderer.newLine();
                 resolve();
             });
         });

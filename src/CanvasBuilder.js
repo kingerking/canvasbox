@@ -49,6 +49,7 @@ class CanvasBuilder {
         // if your rendering a prompt then pass the prompt schema into this.
         return schema => {
             element.writeSchema = schema;
+            this.canvas.promptCount++;
         };
     }
 

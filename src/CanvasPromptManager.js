@@ -1,4 +1,4 @@
-
+const _ = require('lodash');
 /**
  * Will manage current prompts and what values they have returned.
  */
@@ -19,6 +19,7 @@ class CanvasPromptAccessManager
         this.reset = this.reset.bind(this);
         this.isCurrent = this.isCurrent.bind(this);
         this.finish = this.finish.bind(this);
+        this.checkFinished = this.checkFinished.bind(this);
     }
 
     /**
@@ -27,12 +28,39 @@ class CanvasPromptAccessManager
      */
     finish(prompt)
     {
-        this.finishedPrompts.push(prompt);
+        if(this.finishedPrompts.indexOf(prompt) == -1)
+            this.finishedPrompts.push(prompt);
+        this.checkFinished();
     }
 
+    /**
+     * Reset the finished prompts.
+     */
     reset()
     {
+        this.finishedPrompts = [];
+    }
 
+    /**
+     * Will reset finished prompts if all have been finished
+     */
+    checkFinished()
+    {
+        // if user finished all prompts reset to first prompt.
+        if(this.finishedPrompts.length >= this.canvas.promptCount)
+        {
+            // get the required values to delete from the model.
+            const requiredModelProperties = _.map(this.finishedPrompts, schema => schema.name);
+            // reset the prompts
+            this.reset();
+            
+            // re-set model values without rendering
+            _.forEach(requiredModelProperties, propertyKey => 
+                this.canvas.updateModelValue(this.canvas.property(propertyKey, ""), true)
+            );
+            // re-render to see the changes of resetting
+            this.canvas.eventHandler.emit('render');
+        }
     }
 
     /**
@@ -41,12 +69,11 @@ class CanvasPromptAccessManager
      */
     isCurrent(prompt)
     {
+        // if is finished return false
         for(const promptSchema of this.finishedPrompts)
-            if(promptSchema == prompt)
-            {
-                console.log('prompt dont finished: ', prompt.name)
+            if(promptSchema.name == prompt.name)
                 return false;
-            }
+        // if not finished return true
         return true;
     }
 

@@ -27,6 +27,7 @@ class Canvas {
         this.renderer = new CanvasRenderer(this);
         this.promptManager = new PromptAccessControl(this);
         
+        this.promptCount = 0;
         // elements to render.
         this.elements = [];
         // main model for data storage.
@@ -148,6 +149,7 @@ class Canvas {
         this.clearEvents();
         this.clearElements();
         this.drawCount++;
+        this.promptCount = 0;
         this.factory(this.builder);
 
         for(const canvasElement of this.elements)
