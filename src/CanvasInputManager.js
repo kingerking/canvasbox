@@ -11,7 +11,9 @@ module.exports = canvas => {
          * Collect a key event.
          */
         collectKey: () => new Promise(resolve => {
-            canvas.eventHandler.on('key', (str, key) => resolve(key));
+            canvas.eventHandler.once('key', (str, key) => {
+                resolve({str, key});
+            });
         }), 
     };
 };

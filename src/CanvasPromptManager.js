@@ -29,8 +29,12 @@ class CanvasPromptAccessManager
     finish(prompt)
     {
         if(this.finishedPrompts.indexOf(prompt) == -1)
+        {
+            if(prompt.options.submit)
+                prompt.options.submit(prompt, this.canvas.builder.value(prompt.name));
             this.finishedPrompts.push(prompt);
-        this.checkFinished();
+        }
+        this.checkFinished(prompt.options);
     }
 
     /**
@@ -40,7 +44,7 @@ class CanvasPromptAccessManager
     {
         this.finishedPrompts = [];
     }
-
+    
     /**
      * Will reset finished prompts if all have been finished
      */
@@ -53,13 +57,13 @@ class CanvasPromptAccessManager
             const requiredModelProperties = _.map(this.finishedPrompts, schema => schema.name);
             // reset the prompts
             this.reset();
-            
             // re-set model values without rendering
-            _.forEach(requiredModelProperties, propertyKey => 
-                this.canvas.updateModelValue(this.canvas.property(propertyKey, ""), true)
-            );
-            // re-render to see the changes of resetting
-            this.canvas.eventHandler.emit('render');
+            _.forEach(requiredModelProperties, propertyKey => {
+                // if user wants this to be a one use route then dont delete its value.
+                if(!this.canvas.builder.isBlackListed(propertyKey)) 
+                    this.canvas.updateModelValue(this.canvas.property(propertyKey, ""), true);
+            });
+            
         }
     }
 

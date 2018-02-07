@@ -27,6 +27,7 @@ class Canvas {
         this.renderer = new CanvasRenderer(this);
         this.promptManager = new PromptAccessControl(this);
         
+        this.loopBackMethod = undefined;
         this.promptCount = 0;
         // elements to render.
         this.elements = [];
@@ -36,6 +37,7 @@ class Canvas {
         // will point to a interval to hold the process from exiting until CanvasBox is done rendering.
         this.processHolder = null;
         this.drawCount = 0;
+        this.stopRendering = false;
         this.init();
     }
 
@@ -78,6 +80,7 @@ class Canvas {
         this.init = this.init.bind(this);
         this.property = this.property.bind(this);
         this.updateModelValue = this.updateModelValue.bind(this);
+        this.promptIsPersistent = this.promptIsPersistent.bind(this);
     }
 
     /**
@@ -100,6 +103,17 @@ class Canvas {
         if(!skipRenderCycle) this.eventHandler.emit('render');
     }
 
+    promptIsPersistent(promptName)
+    {
+        for(const element of this.elements)
+            if(element.writeSchema && element.writeSchema.options.persist)
+            {
+                console.log("assessing: ", element.writeSchema);
+                return false;
+            }
+        return false;
+    }
+
     holdProcess()
     {
         this.processHolder = setInterval(() => {}, 50000);
@@ -120,6 +134,10 @@ class Canvas {
     {
         this.eventHandler.removeAllListeners('render');
         this.eventHandler.removeAllListeners('key');
+        this.eventHandler.removeAllListeners('init');
+        this.eventHandler.removeAllListeners('submit');
+        this.eventHandler.removeAllListeners('after-render');
+        this.eventHandler.removeAllListeners('stop-render');
 
         this.setupInternalEvents();
     }
@@ -150,15 +168,35 @@ class Canvas {
         this.clearElements();
         this.drawCount++;
         this.promptCount = 0;
+        this.stopRendering = false;
+        this.eventHandler.once('stop-render', () => this.stopRendering = true);
         this.factory(this.builder);
 
-        for(const canvasElement of this.elements)
-            (await canvasElement.render(
-                this.property('lines', this.elements),
-                this.property('drawCount', this.drawCount)
-            ));
+        // run init event after factory so user has chance to write a init event if they want
+        if(this.drawCount == 1) 
+        {
+            // re-render in case user sets default model values.
+            this.eventHandler.emit('init');
+            this.render();
+            return;
+        } 
+        try {
+            for(const canvasElement of this.elements)
+            {
+                if(!canvasElement) continue;
+                (await canvasElement.render(
+                    this.property('lines', this.elements),
+                    this.property('drawCount', this.drawCount)
+                ));
+                if(this.stopRendering) break;
+            }
+        } catch(e)
+        {
+            console.log("error.");
+        }
+        
 
-        return;
+        return await setTimeout(this.render);
     }
 
     /**

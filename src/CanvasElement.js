@@ -1,5 +1,5 @@
-const { EventEmitter } = require('events');
-
+const {EventEmitter} = require('events');
+const _ = require('lodash');
 
 /**
  * Represents a target that can be rendered to the screen.
@@ -16,6 +16,7 @@ class CanvasElement
         // all lines this will render.
         this.renderBuffer = [];
         this.writeSchema = undefined;
+        this.index = this.canvas.elements.length;
         this.canvas.registerElement(this);
     }
 
@@ -35,9 +36,17 @@ class CanvasElement
         this.render = this.render.bind(this);
         this.renderPromiseSchema = this.renderPromiseSchema.bind(this);
         this.simpleRender = this.simpleRender.bind(this);
+        this.discard = this.discard.bind(this);
+        this.inactiveSchemaRender = this.inactiveSchemaRender.bind(this);
     }
 
-
+    
+    discard()
+    {
+        console.log("discarding of element.")
+        this.canvas.elements[this.canvas.elements.indexOf(this)] = null;
+    }
+    
     /**
      * Render the 0 index of renderBuffer. this is basic rendering
      */
@@ -49,7 +58,14 @@ class CanvasElement
             resolve();
         });
     }
-
+    inactiveSchemaRender(properties)
+    {
+        return new Promise(resolve => {
+            this.canvas.renderer.renderLine(this.renderBuffer[0] + this.canvas.builder.value(this.writeSchema.name), properties);
+            this.canvas.renderer.newLine();
+        });
+    }
+    
     /**
      * This will invoke a schema render proccess with the schema.promise propertiy and continue rendering when said promise resolves.
      * @param {*} properties 
@@ -70,13 +86,17 @@ class CanvasElement
      */
     async render(...properties)
     {
-        // properties = this.canvas.compileProperties(properties);
-        
         const renderer = this.canvas.renderer;
+
         if(!this.writeSchema) // simple line render
             return await this.simpleRender(properties);
         else if(this.writeSchema)
+        {
+            if(this.writeSchema.dropped)
+                return await this.inactiveSchemaRender(properties);
             return await this.renderPromiseSchema(properties);
+        }
+        
         
     }
 
