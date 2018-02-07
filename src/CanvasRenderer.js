@@ -125,10 +125,10 @@ class CanvasRenderer
             }
             
             cliCursor.show();
-            CanvasInputManager(this.canvas).collectKey().then(returned => {
+            const enableRealtimeModelMode = props['realtime-model-engine'] === false ? false : props['realtime-model-engine'];
+            CanvasInputManager(this.canvas).collectKey( !enableRealtimeModelMode ).then(returned => {
                 const { key, str } = returned;
                 let valueToWrite = str;
-
                 // DO NOT RESOLVE UNLESS RETURN IS PRESSED
                 if(key && key.name == 'return')
                 { // todo filter out undefined
@@ -151,9 +151,6 @@ class CanvasRenderer
                 this.newLine();
                 // check for enter, if not set model value, then return.
                 this.canvas.updateModelValue(this.canvas.property(element.writeSchema.name, modelValue));
-                // if key was 
-                // remember resolve when to render next.
-                // resolve();
             });
 
         });

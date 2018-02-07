@@ -54,10 +54,10 @@ class CanvasBuilder {
      */
     append(name)
     {
-        return data => {
+        return (data, doNotRender = true) => {
             const val = this.value(name);
             val.push(data);
-            this.set(name)(val);
+            this.set(name)(val, doNotRender);
         }
     }
 
@@ -140,15 +140,7 @@ class CanvasBuilder {
             // the value rendered will be the returned iteration
             if(data instanceof Array || data instanceof Object)
             {
-                data = (new CanvasUtil(this.canvas)).filterWithProperties(data, options);
-                // user wants to write a collection. 
-                //as of now this will not work for schema render calls. only text.
-                _.forEach(data, (item) => {
-                    let elem = new CanvasElement(this.canvas);
-                    elem.options = options;
-                    let dataToWrite = schema(item);
-                    elem.renderBuffer.push(dataToWrite ? dataToWrite : "");
-                });
+                this.write("Writing collections from .write() is deprecated please use .list() instead.");
                 return;
             }
             element.writeSchema = schema;
@@ -237,7 +229,7 @@ class CanvasBuilder {
 
     set(name)
     {
-        return (value, dontUpdate) => {
+        return (value, dontUpdate = true) => {
             return this.canvas.updateModelValue(this.property(name, value), dontUpdate);
         }
     }
