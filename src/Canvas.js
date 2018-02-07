@@ -196,7 +196,7 @@ class Canvas {
         }
         
 
-        return await setTimeout(this.render);
+        return await setTimeout(this.render, 1000 / 15);
     }
 
     /**
