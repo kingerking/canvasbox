@@ -36,6 +36,12 @@ class CanvasBuilder {
         this.loopback = this.loopback.bind(this);
         this.isBlackListed = this.isBlackListed.bind(this);
         this.drop = this.drop.bind(this);
+        this.refreshRate = this.refreshRate.bind(this);
+    }
+
+    refreshRate()
+    {
+
     }
 
     loopback(doLoopback, after = 500)

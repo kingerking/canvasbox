@@ -99,4 +99,4 @@ In millseconds how long to wait to render next frame
                   V                    V
 canvas.animation(500)(chalk.red('o_0'), chalk.green('0_o))
 ```
-**Note that when rendering animations they must be passed into whats called a writeSchema(The function that canvas.write() returns)**
+**Note that when rendering animations they must be passed into whats called a writeSchema(The function that canvas.write() returns), If you simple call canvas.animation()() it will only return a animation write schema**

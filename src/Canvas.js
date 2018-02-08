@@ -37,6 +37,7 @@ class Canvas {
         // will point to a interval to hold the process from exiting until CanvasBox is done rendering.
         this.processHolder = null;
         this.drawCount = 0;
+        this.refreshRate = 5;
         this.stopRendering = false;
         this.init();
     }
@@ -138,6 +139,7 @@ class Canvas {
         this.eventHandler.removeAllListeners('submit');
         this.eventHandler.removeAllListeners('after-render');
         this.eventHandler.removeAllListeners('stop-render');
+        this.eventHandler.removeAllListeners('refresh-rate');
 
         this.setupInternalEvents();
     }
@@ -170,6 +172,9 @@ class Canvas {
         this.promptCount = 0;
         this.stopRendering = false;
         this.eventHandler.once('stop-render', () => this.stopRendering = true);
+        this.eventHandler.once('refresh-rate', rate => {
+            this.refreshRate = rate;
+        });
         this.factory(this.builder);
 
         // run init event after factory so user has chance to write a init event if they want
@@ -196,7 +201,7 @@ class Canvas {
         }
         
 
-        return await setTimeout(this.render, 1000 / 15);
+        return await setTimeout(this.render, 1000 / this.refreshRate);
     }
 
     /**
