@@ -42,6 +42,7 @@ class CanvasRenderer
         if(this.firstRender)
         { this.firstRender = false; return; }
         readline.moveCursor(process.stdout, 0, -(this.lineCount));
+        readline.cursorTo(process.stdout, 0);
         readline.clearScreenDown(process.stdout);
         this.lineCount = 0;
     }
@@ -151,6 +152,7 @@ class CanvasRenderer
                 this.newLine();
                 // check for enter, if not set model value, then return.
                 this.canvas.updateModelValue(this.canvas.property(element.writeSchema.name, modelValue));
+                
             });
 
         });

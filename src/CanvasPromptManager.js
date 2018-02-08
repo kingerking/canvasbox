@@ -30,8 +30,10 @@ class CanvasPromptAccessManager
     {
         if(this.finishedPrompts.indexOf(prompt) == -1)
         {
-            if(prompt.options.submit)
-                prompt.options.submit(prompt, this.canvas.builder.value(prompt.name));
+            // after render because this operation may be inside a render call.
+            
+            this.canvas.eventHandler.emit('submit', { target: prompt.element, value: this.canvas.builder.value(prompt.name) });
+            
             this.finishedPrompts.push(prompt);
         }
         this.checkFinished(prompt.options);
@@ -63,6 +65,8 @@ class CanvasPromptAccessManager
                 if(!this.canvas.builder.isBlackListed(propertyKey)) 
                     this.canvas.updateModelValue(this.canvas.property(propertyKey, ""), true);
             });
+
+            this.canvas.builder.reDraw();
             
         }
     }

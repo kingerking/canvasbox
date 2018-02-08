@@ -12,11 +12,27 @@ class CanvasElement
     {
         this.canvas = canvas;
         this.bindMethods.bind(this)();
-        this.eventHandler = new EventEmitter();
         // all lines this will render.
         this.renderBuffer = [];
         this.writeSchema = undefined;
         this.index = this.canvas.elements.length;
+    }
+    /**
+     * Bind all local methods.
+     */
+    bindMethods()
+    {
+        this.render = this.render.bind(this);
+        this.renderPromiseSchema = this.renderPromiseSchema.bind(this);
+        this.simpleRender = this.simpleRender.bind(this);
+        this.discard = this.discard.bind(this);
+        this.inactiveSchemaRender = this.inactiveSchemaRender.bind(this);
+        this.event = this.event.bind(this);
+        this.queueForRender = this.queueForRender.bind(this);
+    }
+
+    queueForRender()
+    {
         this.canvas.registerElement(this);
     }
 
@@ -28,22 +44,31 @@ class CanvasElement
         return this.writeSchema;
     }
 
-    /**
-     * Bind all local methods.
-     */
-    bindMethods()
+    set value(newValue)
     {
-        this.render = this.render.bind(this);
-        this.renderPromiseSchema = this.renderPromiseSchema.bind(this);
-        this.simpleRender = this.simpleRender.bind(this);
-        this.discard = this.discard.bind(this);
-        this.inactiveSchemaRender = this.inactiveSchemaRender.bind(this);
+        
     }
+
+    get value()
+    {
+
+    }
+
+    event(name)
+    {
+        return callback => {
+            this.canvas.eventHandler.once(name, event => {
+                if(event.target.writeSchema && this.writeSchema && event.target.writeSchema.name == this.writeSchema.name)
+                    callback(event);
+            });
+            return this;
+        }
+    }
+
 
     
     discard()
     {
-        console.log("discarding of element.")
         this.canvas.elements[this.canvas.elements.indexOf(this)] = null;
     }
     

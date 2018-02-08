@@ -22,7 +22,7 @@ class CanvasBuilder {
         this.prompt = this.prompt.bind(this);
         this.write = this.write.bind(this);
         this.model = this.model.bind(this);
-        this.forceRender = this.forceRender.bind(this);
+        this.reDraw = this.reDraw.bind(this);
         this.drawCount = this.drawCount.bind(this);
         this.event = this.event.bind(this);
         this.update = this.update.bind(this);
@@ -33,25 +33,77 @@ class CanvasBuilder {
         this.list = this.list.bind(this);
         this.animation = this.animation.bind(this);
         this.append = this.append.bind(this);
-        this.loopback = this.loopback.bind(this);
         this.isBlackListed = this.isBlackListed.bind(this);
-        this.drop = this.drop.bind(this);
+        this.doneWith = this.doneWith.bind(this);
         this.refreshRate = this.refreshRate.bind(this);
+        this.until = this.until.bind(this);
+        this.render = this.render.bind(this);
+        this.createElement = this.createElement.bind(this);
+        this.deleteElement = this.deleteElement.bind(this);
+        this.info = this.info.bind(this);
+        this.renderWhile = this.renderWhile.bind(this);
+        this.rainbow = this.rainbow.bind(this);
+    }
+
+    /**
+     * Debug function that display's canvas info.
+     */
+    info()
+    {
+        const chalk = require('chalk');
+        const modelState = this.model();
+        this.write(chalk.red("=-=-= Debug Stat's =-=-="));
+        this.write(chalk.red(`Draw Count: ${chalk.bold(this.drawCount())}`));
+        this.write(chalk.yellow("=- Current application model state -="));
+        
+        const values = _.values(modelState);
+        const keys = _.keys(modelState);
+
+        this.list(keys)((item, index) => {
+            let val = values[index];
+            const filterValue = val => {
+                return val.substring(0, 40) + "...";
+            };
+            if(typeof val == 'string' && val.length >= 40)
+                val = filterValue(val);
+            else if(val instanceof Array)
+                val = "Array with length: " + val.length;
+            
+            
+
+
+            return chalk.red(item) + " : " + chalk.green( val )
+        }); 
+
     }
 
     refreshRate()
     {
-
+        return this.canvas.refreshRate;
     }
 
-    loopback(doLoopback, after = 500)
+    renderWhile(doRender)
     {
-        if(!doLoopback)
-            return;
-        this.canvas.eventHandler.once('after-render', () => {
-            setTimeout(() => this.canvas.eventHandler.emit('render'), after)
-        });
-        this.canvas.eventHandler.emit('stop-render');
+        return fragment => {
+            if(doRender)
+                fragment(this);
+        };
+    }
+    
+    until(expressionOutput)
+    {
+        return element => {
+            if(!expressionOutput)
+                return;
+            this.canvas.eventHandler.once('after-render', () => {
+                this.canvas.eventHandler.emit('render');
+            });
+            if(element instanceof Function) element(this);
+            element = this.canvas.elements[this.canvas.elements.length - 1];
+            // stop render on last element to be render(will be in the expression output)
+            this.canvas.stopRenderOn(element);
+            return element; // todo fix this
+        };
     }
 
     /**
@@ -83,12 +135,11 @@ class CanvasBuilder {
      * Will not render a schema with this name again.
      * @param {*} name 
      */
-    drop(name)
+    doneWith(name)
     {
         this.blackListedSchemas.push(name);
         
     }
-
 
     event(eventName, doEmit = false)
     {
@@ -108,10 +159,11 @@ class CanvasBuilder {
     // write all lines in a array
     list(array)
     {
-        return middleWare => {
+        return iterator => {
             _.forEach(array, (elem, index, ar) => {
-                let val = middleWare(elem, index, ar);
-                if(val)this.write(val);
+                let val = iterator(elem, index, ar);
+                if(val)
+                    this.write(val);
             });
         }
     }
@@ -123,38 +175,96 @@ class CanvasBuilder {
      * @param {*} data 
      * @param {*} options 
      */
-    write(data = "", ...options)
+    write(data)
     {
-        // dont write if user passes a boolean override.
-        if(options[0] instanceof Boolean && !options[0])
-            return;
-        if(data instanceof Function)
+        // if user simply wants to render element then they pass element
+        // into write.
+        if(data instanceof CanvasElement)
         {
-            // user wants to render a fragment
-            data(this);
-            return;
-        }
-        if(!(data instanceof Array) && !(data instanceof Object))
-        {
-            var element = new CanvasElement(this.canvas);
-            element.renderBuffer.push(data);
-            element.options = options;
-        }
-        // if your rendering a prompt then pass the prompt schema into this.
-        return schema => {
-            // schema will be the iterator if your rendering a collection.
-            // the value rendered will be the returned iteration
-            if(data instanceof Array || data instanceof Object)
+            // user wants to simply write the element.
+            if(data.writeSchema && this.isBlackListed(data.writeSchema.dropped))
+                return data;
+            data.queueForRender();
+            return data;
+        } else if(data instanceof Object) 
+            throw new Error("you cannot write Objects please use iterators and list functions.");
+        
+        // data is string at this point.
+        const element = this.createElement(data)(null);
+        element.renderBuffer.push(data);
+        element.queueForRender();
+        
+        
+        // if user wants to tell element what to write at write time then
+        // they pass string data into first function and element into next.
+        return elementRef => {
+            if(typeof data == 'string' && elementRef instanceof CanvasElement)
             {
-                this.write("Writing collections from .write() is deprecated please use .list() instead.");
-                return;
+                // discard of element we are constructing right now.
+                element.discard();
+                elementRef.renderBuffer.push(data);
+                if(elementRef.writeSchema && elementRef.writeSchema.dropped)
+                    return elementRef;
+                elementRef.queueForRender();
+                return elementRef;
+            } else if(typeof elementRef == 'string')
+            {
+                element.renderBuffer[0] += this.value(elementRef);
+                return element;
             }
-            element.writeSchema = schema;
-            if(this.isBlackListed(schema.name))
-                element.writeSchema.dropped = true;
-            else
-                this.canvas.promptCount++;
+            
+            // apply schema to element and queue for render.
+            elementRef.element = element;
+            element.writeSchema = elementRef;
+            if(element.writeSchema && this.isBlackListed(element.writeSchema.name)) 
+                element.queueForRender();
+            this.canvas.promptCount++;
+            return element;
+        
         };
+    }
+
+    deleteElement(element)
+    {
+        return element;
+    }
+
+    /**
+     * Render a fragment
+     */
+    render(elementGenerator)
+    {
+        elementGenerator(this);
+    }   
+
+    /**
+     * This will create an element that doesnt render until passed into write.
+     * so you can do what you want with it until you wish to render.
+     * 
+     * @param {*} schema 
+     */
+    createElement(schema, ...options)
+    {
+        // user wants to generate a element that writes to screen.
+        if(typeof schema == 'string')
+        {
+            const element = new CanvasElement(this.canvas);
+            element.options = options;
+            element.renderBuffer.push(schema);
+            return writeSchema => {
+                if(!writeSchema) return element;
+                element.writeSchema = writeSchema;
+                return element;
+            };
+        }
+        const element = new CanvasElement(this.canvas);
+        if(schema) {
+            schema.element = element;
+            element.writeSchema = schema;
+        }
+        element.options = options;
+        return element;
+    
     }
 
     /**
@@ -266,6 +376,11 @@ class CanvasBuilder {
         };
     }
 
+    rainbow(text)
+    {
+        // TODO allow rainbow rendering on the console(not just random).
+    }
+
     /**
      * this will stop everything from rendering until the animation frames finish rendering.
      * @param baseText the next to always be rendered at beginning.
@@ -302,9 +417,13 @@ class CanvasBuilder {
         return this.canvas.drawCount;
     }
 
-    forceRender()
+    /**
+     * Will redraw the canvas.
+     * @param {*} waitFor wait for how many seconds
+     */
+    reDraw(waitFor = 0)
     {
-        this.canvas.eventHandler.emit('render');
+        setTimeout(() => this.canvas.eventHandler.emit('render'), waitFor);
     }
 
 }

@@ -38,7 +38,7 @@ class Canvas {
         this.processHolder = null;
         this.drawCount = 0;
         this.refreshRate = 5;
-        this.stopRendering = false;
+        this.returnOnElement = null;
         this.init();
     }
 
@@ -82,6 +82,7 @@ class Canvas {
         this.property = this.property.bind(this);
         this.updateModelValue = this.updateModelValue.bind(this);
         this.promptIsPersistent = this.promptIsPersistent.bind(this);
+        this.stopRenderOn = this.stopRenderOn.bind(this);
     }
 
     /**
@@ -140,6 +141,8 @@ class Canvas {
         this.eventHandler.removeAllListeners('after-render');
         this.eventHandler.removeAllListeners('stop-render');
         this.eventHandler.removeAllListeners('refresh-rate');
+        this.eventHandler.removeAllListeners('onchange');
+        this.eventHandler.removeAllListeners('submit');
 
         this.setupInternalEvents();
     }
@@ -157,7 +160,6 @@ class Canvas {
      */
     clearElements()
     {
-        this.elements.forEach(element => element.eventHandler.emit('delete'));
         this.elements = [];
     }
 
@@ -171,6 +173,7 @@ class Canvas {
         this.drawCount++;
         this.promptCount = 0;
         this.stopRendering = false;
+        this.returnOnElement = null;
         this.eventHandler.once('stop-render', () => this.stopRendering = true);
         this.eventHandler.once('refresh-rate', rate => {
             this.refreshRate = rate;
@@ -188,20 +191,35 @@ class Canvas {
         try {
             for(const canvasElement of this.elements)
             {
-                if(!canvasElement) continue;
+                
+                if(!canvasElement || canvasElement.writeSchema && canvasElement.writeSchema.dropped) continue;
                 (await canvasElement.render(
                     this.property('lines', this.elements),
                     this.property('drawCount', this.drawCount)
                 ));
-                if(this.stopRendering) break;
+                this.eventHandler.emit('finish', { element: canvasElement });
+                // this element will be last if set.
+                if(this.returnOnElement && this.returnOnIndex == canvasElement)
+                    return this.eventHandler.emit('after-render');
+                
             }
+            this.eventHandler.emit('after-render');
         } catch(e)
         {
             console.log("error.");
         }
         
+        return;
+        // return await setTimeout(this.render, 1000 / this.refreshRate);
+    }
 
-        return await setTimeout(this.render, 1000 / this.refreshRate);
+    /**
+     * Will render until the given element index. 
+     * @param {*} elementIndex 
+     */
+    stopRenderOn(element)
+    {
+        this.returnOnElement = element;
     }
 
     /**
