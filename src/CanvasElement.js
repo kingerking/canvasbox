@@ -11,6 +11,7 @@ class CanvasElement
     constructor(canvas)
     {
         this.canvas = canvas;
+        this.eventHandler = new EventEmitter();
         this.bindMethods.bind(this)();
         // all lines this will render.
         this.renderBuffer = [];
@@ -57,8 +58,8 @@ class CanvasElement
     event(name)
     {
         return callback => {
-            this.canvas.eventHandler.once(name, event => {
-                if(event.target.writeSchema && this.writeSchema && event.target.writeSchema.name == this.writeSchema.name)
+            this.eventHandler.once(name, event => {
+                if(event && event.target && event.target == this)
                     callback(event);
             });
             return this;

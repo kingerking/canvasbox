@@ -32,7 +32,7 @@ class CanvasPromptAccessManager
         {
             // after render because this operation may be inside a render call.
             
-            this.canvas.eventHandler.emit('submit', { target: prompt.element, value: this.canvas.builder.value(prompt.name) });
+            prompt.element.eventHandler.emit('submit', { target: prompt.element, value: this.canvas.builder.value(prompt.name) });
             
             this.finishedPrompts.push(prompt);
         }
@@ -66,7 +66,7 @@ class CanvasPromptAccessManager
                     this.canvas.updateModelValue(this.canvas.property(propertyKey, ""), true);
             });
 
-            this.canvas.builder.reDraw();
+            // this.canvas.builder.reDraw();
             
         }
     }

@@ -32,11 +32,10 @@ class CanvasBuilder {
         this.once = this.once.bind(this);
         this.list = this.list.bind(this);
         this.animation = this.animation.bind(this);
-        this.append = this.append.bind(this);
         this.isBlackListed = this.isBlackListed.bind(this);
         this.doneWith = this.doneWith.bind(this);
         this.refreshRate = this.refreshRate.bind(this);
-        this.until = this.until.bind(this);
+        this.loopUntil = this.loopUntil.bind(this);
         this.render = this.render.bind(this);
         this.createElement = this.createElement.bind(this);
         this.deleteElement = this.deleteElement.bind(this);
@@ -90,33 +89,19 @@ class CanvasBuilder {
         };
     }
     
-    until(expressionOutput)
+    loopUntil(expressionOutput)
     {
-        return element => {
-            if(!expressionOutput)
+        return fragment => {
+            if(expressionOutput)
                 return;
+            fragment(this);
+            const { eventHandler } = this.canvas;
+            const lastElement = this.canvas.getLastElement();
+            this.canvas.stopRenderOn(lastElement);
             this.canvas.eventHandler.once('after-render', () => {
                 this.canvas.eventHandler.emit('render');
             });
-            if(element instanceof Function) element(this);
-            element = this.canvas.elements[this.canvas.elements.length - 1];
-            // stop render on last element to be render(will be in the expression output)
-            this.canvas.stopRenderOn(element);
-            return element; // todo fix this
         };
-    }
-
-    /**
-     * Append data to end of an array.
-     * @param {*} name 
-     */
-    append(name)
-    {
-        return (data, doNotRender = true) => {
-            const val = this.value(name);
-            val.push(data);
-            this.set(name)(val, doNotRender);
-        }
     }
 
     /**
@@ -135,9 +120,11 @@ class CanvasBuilder {
      * Will not render a schema with this name again.
      * @param {*} name 
      */
-    doneWith(name)
+    doneWith(target)
     {
-        this.blackListedSchemas.push(name);
+        if(!target.writeSchema)
+            return;
+        this.blackListedSchemas.push(target.writeSchema.name);
         
     }
 
@@ -182,13 +169,15 @@ class CanvasBuilder {
         if(data instanceof CanvasElement)
         {
             // user wants to simply write the element.
-            if(data.writeSchema && this.isBlackListed(data.writeSchema.dropped))
-                return data;
-            data.queueForRender();
+            if(data.writeSchema)
+            {
+                data.writeSchema.element = data;
+                data.queueForRender();
+            }
             return data;
         } else if(data instanceof Object) 
             throw new Error("you cannot write Objects please use iterators and list functions.");
-        
+            
         // data is string at this point.
         const element = this.createElement(data)(null);
         element.renderBuffer.push(data);
@@ -203,8 +192,6 @@ class CanvasBuilder {
                 // discard of element we are constructing right now.
                 element.discard();
                 elementRef.renderBuffer.push(data);
-                if(elementRef.writeSchema && elementRef.writeSchema.dropped)
-                    return elementRef;
                 elementRef.queueForRender();
                 return elementRef;
             } else if(typeof elementRef == 'string')
@@ -216,8 +203,7 @@ class CanvasBuilder {
             // apply schema to element and queue for render.
             elementRef.element = element;
             element.writeSchema = elementRef;
-            if(element.writeSchema && this.isBlackListed(element.writeSchema.name)) 
-                element.queueForRender();
+            element.queueForRender();
             this.canvas.promptCount++;
             return element;
         
@@ -275,10 +261,12 @@ class CanvasBuilder {
         this.canvas.renderer.clearLines();
     }
 
-    isBlackListed(schemaName)
+    isBlackListed(canvasElement)
     {
+        if(!canvasElement.writeSchema)
+            return false;
         for(const name of this.blackListedSchemas)
-            if(name == schemaName) return true;
+            if(name == canvasElement.writeSchema.name) return true;
         return false;
     }
 
@@ -376,9 +364,16 @@ class CanvasBuilder {
         };
     }
 
+    /**
+     * This is a fun function people can use.
+     * it will animate the text by making big and small letters
+     * and pulsing a rainbow left to right.
+     * @param {*} text 
+     */
     rainbow(text)
     {
         // TODO allow rainbow rendering on the console(not just random).
+        return text;
     }
 
     /**

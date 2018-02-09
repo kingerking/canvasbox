@@ -31,6 +31,7 @@ class Canvas {
         this.promptCount = 0;
         // elements to render.
         this.elements = [];
+        this.rendering = false;
         // main model for data storage.
         this.model = {};
         this.eventHandler = new EventEmitter();
@@ -83,6 +84,7 @@ class Canvas {
         this.updateModelValue = this.updateModelValue.bind(this);
         this.promptIsPersistent = this.promptIsPersistent.bind(this);
         this.stopRenderOn = this.stopRenderOn.bind(this);
+        this.getLastElement = this.getLastElement.bind(this);
     }
 
     /**
@@ -192,24 +194,23 @@ class Canvas {
             for(const canvasElement of this.elements)
             {
                 
-                if(!canvasElement || canvasElement.writeSchema && canvasElement.writeSchema.dropped) continue;
+                if(!canvasElement || this.builder.isBlackListed(canvasElement)) continue;
                 (await canvasElement.render(
                     this.property('lines', this.elements),
                     this.property('drawCount', this.drawCount)
                 ));
-                this.eventHandler.emit('finish', { element: canvasElement });
+                canvasElement.eventHandler.emit('finish', { target: canvasElement });
                 // this element will be last if set.
+                
                 if(this.returnOnElement && this.returnOnIndex == canvasElement)
                     return this.eventHandler.emit('after-render');
-                
             }
-            this.eventHandler.emit('after-render');
         } catch(e)
         {
-            console.log("error.");
+            console.log("error: ", e);
         }
         
-        return;
+        return this.eventHandler.emit('after-render');
         // return await setTimeout(this.render, 1000 / this.refreshRate);
     }
 
@@ -220,6 +221,11 @@ class Canvas {
     stopRenderOn(element)
     {
         this.returnOnElement = element;
+    }
+
+    getLastElement()
+    {
+        return this.elements[this.elements.length - 1];
     }
 
     /**
