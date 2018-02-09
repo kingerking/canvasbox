@@ -53,6 +53,7 @@ class CanvasBuilder {
         const modelState = this.model();
         this.write(chalk.red("=-=-= Debug Stat's =-=-="));
         this.write(chalk.red(`Draw Count: ${chalk.bold(this.drawCount())}`));
+        this.write(chalk.red(`canvas write buffer: ${chalk.bold(this.canvas.renderer.currentLinesData.length)}`));
         this.write(chalk.yellow("=- Current application model state -="));
         
         const values = _.values(modelState);

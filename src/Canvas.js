@@ -191,6 +191,7 @@ class Canvas {
             return;
         } 
         try {
+            this.renderer.onBeforeRender();
             for(const canvasElement of this.elements)
             {
                 
@@ -203,15 +204,17 @@ class Canvas {
                 // this element will be last if set.
                 
                 if(this.returnOnElement && this.returnOnIndex == canvasElement)
-                    return this.eventHandler.emit('after-render');
+                return this.eventHandler.emit('after-render');
             }
+            
+            this.renderer.onAfterRender();
         } catch(e)
         {
             console.log("error: ", e);
         }
         
-        return this.eventHandler.emit('after-render');
-        // return await setTimeout(this.render, 1000 / this.refreshRate);
+        this.eventHandler.emit('after-render');
+        // return await setTimeout(this.render, 1000 / 5);
     }
 
     /**

@@ -16,7 +16,9 @@ class CanvasElement
         // all lines this will render.
         this.renderBuffer = [];
         this.writeSchema = undefined;
-        this.index = this.canvas.elements.length;
+        // key of model value this is linked to. to basically we will re-render this element if the value is different from currently rendered element.
+        this.linkedTo = undefined;
+        this.lineNumber = 0;
     }
     /**
      * Bind all local methods.
@@ -34,6 +36,8 @@ class CanvasElement
 
     queueForRender()
     {
+        // the line number this element resides on
+        this.lineNumber = this.canvas.elements.length;
         this.canvas.registerElement(this);
     }
 
@@ -79,11 +83,12 @@ class CanvasElement
     simpleRender(properties)
     {
         return new Promise(resolve => {
-            this.canvas.renderer.renderLine(this.renderBuffer[0], properties);
-            this.canvas.renderer.newLine();
+            this.canvas.renderer.renderLine(this.renderBuffer[0], this.lineNumber, properties);
+            // this.canvas.renderer.newLine();
             resolve();
         });
     }
+
     inactiveSchemaRender(properties)
     {
         return new Promise(resolve => {
