@@ -182,36 +182,11 @@ class CanvasRenderer
         }
     }
     
-    renderTextPrompt(element, ...properties)
+    renderTextPrompt(element, line, ...properties)
     {
-        return new Promise(resolve => {
-            const props = this.canvas.compileProperties(properties);
-            let modelValue = this.canvas.builder.value(element.writeSchema.name);
-            this.renderLine(element.renderBuffer[0] + modelValue, element.lineNumber)
-
-            if(!this.canvas.promptManager.isCurrent(element.writeSchema))
-            return resolve();
-            
-            cliCursor.show();
-            CanvasInputManager(this.canvas).collectKey(false).then(keyboardEvent => {
-                const {key, str} = keyboardEvent;
-                if(key && key.name == 'return')
-                {
-                    cliCursor.hide();
-                    this.canvas.promptManager.finish(element.writeSchema);
-                    return resolve();
-                } else if(key && key.name == 'backspace')
-                    modelValue = modelValue.substring(0, modelValue.length - 1);
-                else if(key && key.name == 'space')
-                    modelValue += " ";
-                else modelValue += str ? str : "";
-
-                cliCursor.hide();
-                this.clearLine(element.lineNumber);
-                this.renderLine(modelValue, element.lineNumber);
-                this.canvas.builder.set(element.writeSchema.name)(modelValue);
-                // resolve();
-            });
+        return new Promise(resolvePrompt => {
+            this.renderLine(element.renderBuffer[0] + this.canvas.builder.value(element.writeSchema.name), line);
+            // resolvePrompt();
         });
     }
 
