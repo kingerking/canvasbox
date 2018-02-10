@@ -259,13 +259,13 @@ class Canvas {
         
         this.renderer.onAfterRender();
         this.eventHandler.emit('after-render');
-        return await setTimeout(() => {
-            if(this.rendering)
-                return this.eventHandler.once('after-render', () => {
-                    this.render();
-                });
-            this.render();
-        }, 1000 / 15);
+        // return await setTimeout(() => {
+        //     if(this.rendering)
+        //         return this.eventHandler.once('after-render', () => {
+        //             this.render();
+        //         });
+        //     this.render();
+        // }, 1000 / 5);
         return;
     }
 
