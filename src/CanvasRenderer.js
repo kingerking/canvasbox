@@ -38,13 +38,10 @@ class CanvasRenderer
     }
 
     clearLines()
-    { // right now this doesnt clear the screen. but simply resets the render scratch buffer.
+    { 
+        // right now this doesnt clear the screen. but simply resets the render scratch buffer.
         this.renderBuffer = this.scratchBuffer;
         this.scratchBuffer = [];
-        // readline.cursorTo(process.stdout, 0);
-        // readline.moveCursor(process.stdout, 0, -this.cursorPositionY);
-        // this.cursorPositionY = 0;
-        // this.lines = 0;
     }
 
     /**
@@ -136,8 +133,19 @@ class CanvasRenderer
 
     onAfterRender()
     {
-        
-    }
+        if(this.scratchBuffer.length < this.renderBuffer.length)
+        {
+            const doFor = (this.renderBuffer.length - 1) - (this.scratchBuffer.length - 1);
+            for(let i = 0; i <= doFor; i++)
+                this.clearLine(i + (this.scratchBuffer.length - 1));
+            // sync active state up
+            this.scratchBuffer.splice((this.scratchBuffer.length - 1) - doFor, doFor);
+            this.canvas.render(); // invoke another render to re-write the lines lost.
+            
+
+            // throw new Error(`itemsRemoved:${itemsRemoved}, doFor: ${doFor}, scratchBuffer:${this.scratchBuffer.length}, the renderBUffer: ${this.renderBuffer.length}`);
+        }
+    }  
     
 
 }
