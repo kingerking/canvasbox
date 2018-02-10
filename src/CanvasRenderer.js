@@ -195,14 +195,26 @@ class CanvasRenderer
      * @param {*} element The animation element.
      */
     async renderTextAnimation(element, line, properties)
-    {console.debug("starting animation")
+    {
+        // so people can write more complex animations
+        let animationState = {};
         const options = this.canvas.compileProperties(properties);
         const { writeSchema } = element;
         if(!writeSchema.interval || !writeSchema.frames)
             return;
 
         const animate = frame => new Promise(resolveFrame => {
-            this.renderLine(writeSchema.middleware(writeSchema.frames.indexOf(frame), element.renderBuffer[0], frame), line, true);
+            let prefix = element.renderBuffer[0];
+
+            writeSchema.middleware.forEach(middleware => {
+                const middleOut = middleware(writeSchema.frames.indexOf(frame), prefix, frame, animationState);
+                prefix = middleOut.prefix;
+                frame = middleOut.frame;
+                animationState = _.merge(animationState, middleOut.state);
+            });
+
+            this.renderLine(prefix + frame, line, true);
+
             setTimeout(() => {
                 console.debug(`[cycle ${this.canvas.builder.drawCount()}]: Resolving animation frame: ${frame}, frame wrote: ${element.renderBuffer[0] + frame} \n on line: ${line}`);
                 resolveFrame();
@@ -211,7 +223,7 @@ class CanvasRenderer
 
         for(const frame of writeSchema.frames)
             (await animate(frame));
-            
+
         return;
     }
 

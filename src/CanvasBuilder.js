@@ -31,6 +31,7 @@ class CanvasBuilder {
         this.set = this.set.bind(this);
         this.once = this.once.bind(this);
         this.list = this.list.bind(this);
+        this.blink = this.blink.bind(this);
         this.animation = this.animation.bind(this);
         this.isBlackListed = this.isBlackListed.bind(this);
         this.doneWith = this.doneWith.bind(this);
@@ -374,14 +375,36 @@ class CanvasBuilder {
      * it will animate the text by making big and small letters
      * and pulsing a rainbow left to right.
      */
-    rainbow(frameNumber, prefix, frame)
+    rainbow(frameNumber, prefix, frame, state)
     {
-        const { red, green, blue, magenta, cyan } = require('chalk');
-        const binding = [red,green,blue,magenta,cyan];
+        const grad = require('gradient-string');
+        const binding = [
+            grad('pink', 'cyan', 'blue', 'green'), 
+            grad('magenta', 'blue', 'green', 'grey'),
+            grad('magenta', 'cyan', 'link', 'yellow'),
+            grad('yellow', 'pink', 'blue', 'green')
+        ];
         const rand = () => Math.floor(Math.random() * ((binding.length - 1) - 0 + 1)) + 0;
-        prefix = prefix.split("").map(element => binding[rand()](element));
-        frame = frame.split("").map(element => binding[rand()](element));
-        return prefix.join("") + frame.join("");
+        return { prefix: binding[rand()](prefix), frame: binding[rand()](frame), state };
+    }
+
+    /**
+     * Blinking animation middleware
+     * @param {*} frameNumber 
+     * @param {*} prefix 
+     * @param {*} frame 
+     * @param {*} state 
+     */
+    blink(frameNumber, prefix, frame, state)
+    {
+        if(frame == 0)
+            state.blink = true;
+        state.blink = !state.blink;
+        return {
+            prefix: state.blink ? prefix : "",
+            frame: state.blink ? frame : "",
+            state
+        };
     }
 
     /**
@@ -390,12 +413,11 @@ class CanvasBuilder {
      * @param interval the interval between frames.
      * @param properties the extra properties.
      */
-    animation(interval, middleware, ...properties)
+    animation(interval, ...middleware)
     {
         const writeSchema = {};
         writeSchema.interval = interval;
-        writeSchema.extra = properties;
-        writeSchema.middleware = !middleware ? (frameNumber, prefix, frame) => prefix + frame : middleware;
+        writeSchema.middleware = !middleware ? [(frameNumber, prefix, frame) => prefix + frame] : middleware;
         writeSchema.type = 'animation';
         return (...frames) => {
             // right now the system only supports frame based animations. in future we will support multi line frames via multi dimensional arrays
