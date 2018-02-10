@@ -19,6 +19,7 @@ class CanvasRenderer
         // this is what is currently onscreen. we will use these two buffers to calculate what to take off the end.
         this.renderBuffer = [];
         this.rendering = false;
+        this.firstRender = true;
         // this gets reset everytime - current render cycle output
         this.scratchBuffer = [];
         this.cursorPositionY = 0;
@@ -43,6 +44,11 @@ class CanvasRenderer
 
     clearLines()
     { 
+        if(this.firstRender)
+        {
+            this.firstRender = false;
+            return;
+        }
         // right now this doesnt clear the screen. but simply resets the render scratch buffer.
         this.renderBuffer = this.scratchBuffer;
         this.scratchBuffer = [];
@@ -195,8 +201,18 @@ class CanvasRenderer
     renderTextPrompt(element, line, ...properties)
     {
         return new Promise(resolvePrompt => {
-            this.renderLine(element.renderBuffer[0] + this.canvas.builder.value(element.writeSchema.name), line);
-            // resolvePrompt();
+            const value = this.canvas.builder.value(element.writeSchema.name);
+            const renderInput = () => this.renderLine(element.renderBuffer[0] + value, line, true);
+            renderInput();
+            if(!this.canvas.promptManager.isCurrent())
+                return resolvePrompt();
+            cliCursor.show();
+            CanvasInputManager(this.canvas).collectKey(keyboardEvent => {
+                this.canvas.builder.set(element.writeSchema.name)(value + keyboardEvent.str);
+                
+                keyboardEvent.stopListening();
+                resolvePrompt();
+            });
         });
     }
 

@@ -10,15 +10,16 @@ module.exports = canvas => {
         /**
          * Collect a key event.
          */
-        collectKey: enableEngine => new Promise(resolve => {
+        collectKey: callback => new Promise(resolve => {
+            let doReset = true;
             const setupListener = () => {
                 canvas.eventHandler.once('key', (str, key) => {
-                    if(enableEngine)
-                        resolve({str, key});
-                    else if(key.name == 'return') // when disabling the engine we will only
-                        resolve({str, key});
-                    else
+                    if(callback)
+                    {
+                        callback({str, key, stopListening: () => doReset = false});
+                        if(!doReset) return;
                         setupListener();
+                    }
                 });
             };
             setupListener();
