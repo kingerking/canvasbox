@@ -18,6 +18,7 @@ class CanvasElement
         this.writeSchema = undefined;
         // key of model value this is linked to. to basically we will re-render this element if the value is different from currently rendered element.
         this.linkedTo = undefined;
+        this.queued = false;
         this.lineNumber = 0;
     }
     /**
@@ -36,6 +37,7 @@ class CanvasElement
 
     queueForRender()
     {
+        this.queued = true;
         // the line number this element resides on
         this.lineNumber = this.canvas.elements.length;
         this.canvas.registerElement(this);
@@ -74,7 +76,9 @@ class CanvasElement
     
     discard()
     {
-        this.canvas.elements[this.canvas.elements.indexOf(this)] = null;
+        this.queued = false;
+        this.lineNumber = undefined;
+        this.canvas.elements.splice(this.canvas.elements.indexOf(this), 1);
     }
     
     /**
@@ -92,8 +96,8 @@ class CanvasElement
     inactiveSchemaRender(properties)
     {
         return new Promise(resolve => {
-            this.canvas.renderer.renderLine(this.renderBuffer[0] + this.canvas.builder.value(this.writeSchema.name), properties);
-            this.canvas.renderer.newLine();
+            // this.canvas.renderer.renderLine(this.renderBuffer[0] + this.canvas.builder.value(this.writeSchema.name), this.lineNumber, properties);
+            resolve();
         });
     }
     
@@ -105,10 +109,7 @@ class CanvasElement
     {
         const { renderer } = this.canvas;
         return new Promise(resolve => {
-            renderer.renderSchema(this, properties).then(() => {
-                // renderer.newLine();
-                resolve();
-            });
+            renderer.renderSchema(this, this.lineNumber, properties).then(resolve);
         });
     }
 

@@ -92,15 +92,16 @@ class CanvasBuilder {
     
     loopUntil(expressionOutput)
     {
+        let el = undefined;
         return fragment => {
             if(expressionOutput)
-                return;
+                return this.canvas.stopElementNextCycle(el);
             fragment(this);
+            el = this.canvas.getLastElement();
+            this.canvas.stopRenderOn(el);
             const { eventHandler } = this.canvas;
-            const lastElement = this.canvas.getLastElement();
-            this.canvas.stopRenderOn(lastElement);
-            this.canvas.eventHandler.once('after-render', () => {
-                this.canvas.eventHandler.emit('render');
+            eventHandler.once('after-render', () => {
+                eventHandler.emit('render');
             });
         };
     }
@@ -267,7 +268,8 @@ class CanvasBuilder {
         if(!canvasElement.writeSchema)
             return false;
         for(const name of this.blackListedSchemas)
-            if(name == canvasElement.writeSchema.name) return true;
+            if(name == canvasElement.writeSchema.name) 
+                return true;
         return false;
     }
 
@@ -419,7 +421,8 @@ class CanvasBuilder {
      */
     reDraw(waitFor = 0)
     {
-        setTimeout(() => this.canvas.eventHandler.emit('render'), waitFor);
+        //setTimeout(() => this.canvas.eventHandler.emit('render'), waitFor);
+        throw new Error("reDraw is now deprecated due to new render implementation. there is simply no need for it now.");
     }
 
 }

@@ -79,7 +79,7 @@ class CanvasRenderer
         return offset;
     }
 
-    // will check the render buffer for the line and not update if it hasnt cahnged. aka virutal rendering
+    
     checkBuffer(line, data)
     {
         if(this.renderBuffer.length > line)

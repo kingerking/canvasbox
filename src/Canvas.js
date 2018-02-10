@@ -1,4 +1,5 @@
 
+const chalk = require('chalk');
 const { EventEmitter } = require('events');
 const readline = require('readline');
 const cliCursor = require('cli-cursor');
@@ -26,12 +27,15 @@ class Canvas {
         this.builder = new CanvasBuilder(this);
         this.renderer = new CanvasRenderer(this);
         this.promptManager = new PromptAccessControl(this);
-        
+        this.developmentMode = true;
+        this.developmentPort = 9000;
+        this.developmentSocket = undefined;
         this.loopBackMethod = undefined;
+        this.skipNext = undefined;
         this.promptCount = 0;
         // elements to render.
         this.elements = [];
-        this.rendering = false;
+        this.hasInitializedCanvas = false;
         // main model for data storage.
         this.model = {};
         this.eventHandler = new EventEmitter();
@@ -43,8 +47,19 @@ class Canvas {
         this.init();
     }
 
+    get rendering()
+    {
+        return this.renderer.rendering;
+    }
+
     init()
     {
+        if(this.developmentMode)
+        {
+            this.developmentSocket = require('socket.io-client')(`http://localhost:${this.developmentPort}`);
+            // this.developmentSocket.emit('reset');
+            console.debug = dataField => this.developmentSocket.emit('message', dataField);
+        } else console.debug = ()=>{};
         // hide the cursor
         cliCursor.hide();
         // start holding the process.
@@ -79,6 +94,7 @@ class Canvas {
         this.clearElements = this.clearElements.bind(this);
         this.holdProcess = this.holdProcess.bind(this);
         this.stopProcess = this.stopProcess.bind(this);
+        this.stopElementNextCycle = this.stopElementNextCycle.bind(this);
         this.init = this.init.bind(this);
         this.property = this.property.bind(this);
         this.updateModelValue = this.updateModelValue.bind(this);
@@ -180,21 +196,42 @@ class Canvas {
         this.eventHandler.once('refresh-rate', rate => {
             this.refreshRate = rate;
         });
+        
+        if(this.developmentMode)
+        {
+            // this.developmentSocket.emit('reset');
+            // if in dev mode connect to dev server.
+            const element = this.builder.createElement(chalk.red("Logging to dev server on port: " + this.developmentPort))();
+            this.elements.push(this.builder.write(element));
+        }
         this.factory(this.builder);
+        console.debug(`render Request[${this.drawCount}]: payload yield: ${this.elements.length} `);
 
         // run init event after factory so user has chance to write a init event if they want
-        if(this.drawCount == 1) 
+        if(this.drawCount == 1 && !this.hasInitializedCanvas) 
         {
+            this.drawCount--;
+            this.hasInitializedCanvas = true;
             // re-render in case user sets default model values.
             this.eventHandler.emit('init');
             this.render();
             return;
         } 
         try {
-            this.renderer.onBeforeRender();
+            if(!this.renderer.onBeforeRender()) return;
             for(const canvasElement of this.elements)
             {
-                
+                if(this.skipNext == canvasElement)
+                {
+                    this.skipNext = undefined;
+                    if(this.elements.indexOf(canvasElement) == this.elements.length - 1)
+                    {
+                        this.renderer.onAfterRender();
+                        this.eventHandler.emit('after-render');
+                        return;
+                    }
+                    continue;
+                }
                 if(!canvasElement || this.builder.isBlackListed(canvasElement)) continue;
                 (await canvasElement.render(
                     this.property('lines', this.elements),
@@ -203,18 +240,38 @@ class Canvas {
                 canvasElement.eventHandler.emit('finish', { target: canvasElement });
                 // this element will be last if set.
                 
-                if(this.returnOnElement && this.returnOnIndex == canvasElement)
-                return this.eventHandler.emit('after-render');
+                if(this.returnOnElement == canvasElement)
+                {
+                    this.renderer.onAfterRender();
+                    this.eventHandler.emit('after-render');
+                    return;
+                }
             }
             
-            this.renderer.onAfterRender();
         } catch(e)
         {
-            console.log("error: ", e);
+            console.debug(`Got error on cycle: ${e.message}`);
+            console.debug(`     |-: ${e.fileName}`);
+            console.debug(`     |-: ${e.name}`);
+            console.debug(`     |-: ${e.stack}`);
+            // console.log("error: ", e);
         }
         
+        this.renderer.onAfterRender();
         this.eventHandler.emit('after-render');
-        // return await setTimeout(this.render, 1000 / 5);
+        return await setTimeout(() => {
+            if(this.rendering)
+                return this.eventHandler.once('after-render', () => {
+                    this.render();
+                });
+            this.render();
+        }, 1000 / 15);
+        return;
+    }
+
+    stopElementNextCycle(element)
+    {
+        this.skipNext = element;
     }
 
     /**

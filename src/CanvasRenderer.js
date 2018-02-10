@@ -18,6 +18,7 @@ class CanvasRenderer
         this.canvas = canvas;
         // this is what is currently onscreen. we will use these two buffers to calculate what to take off the end.
         this.renderBuffer = [];
+        this.rendering = false;
         // this gets reset everytime - current render cycle output
         this.scratchBuffer = [];
         this.cursorPositionY = 0;
@@ -35,6 +36,9 @@ class CanvasRenderer
         this.deleteUp = this.deleteUp.bind(this);
         this.onAfterRender = this.onAfterRender.bind(this);
         this.onBeforeRender = this.onBeforeRender.bind(this);
+        this.renderSchema = this.renderSchema.bind(this);
+        this.renderTextAnimation = this.renderTextAnimation.bind(this);
+        this.renderTextPrompt = this.renderTextPrompt.bind(this);
     }
 
     clearLines()
@@ -85,20 +89,25 @@ class CanvasRenderer
         readline.cursorTo(process.stdout, 0);
     }
 
-    renderLine(buffer, line, properties)
+    /**
+     * Will render a line to the screen.    
+     * @param {*} buffer The buffer to write    
+     * @param {*} line What line to write on
+     * @param {*} writeOver If false then will only write the line if it has changed else it will write over it anyways.
+     */
+    renderLine(buffer, line, writeOver = false)
     {
-
-        // const createLines = () => {
-        //     // keep at bottom...
-        //     if(line > this.lines) 
-        //     {
-        //         const toAdd = (line - this.lines);
-        //         this.lines += toAdd;
-        //         for(let i = 0; i < toAdd; i++)
-        //             this.newLine();
-        //     }
-        // };
-
+        const createLines = () => {
+            // keep at bottom...
+            if(line > this.lines) 
+            {
+                const toAdd = (line - this.lines);
+                // this.lines += toAdd;
+                for(let i = 0; i < toAdd; i++)
+                    this.newLine();
+            }
+        };
+        
         // scratch buffer is what user renders out this session.
         if(this.scratchBuffer.length < line)
             this.scratchBuffer.push(buffer);
@@ -106,12 +115,11 @@ class CanvasRenderer
             this.scratchBuffer[line] = buffer;
         
         let existsInRenderBuffer = this.renderBuffer.indexOf(buffer) !== -1;
-        
-        if(line > this.lines)
-            this.newLine();
+        // create non-existent lines
+        if(line > this.lines && !existsInRenderBuffer) createLines();
 
-        if(existsInRenderBuffer && this.renderBuffer[line] !== buffer)
-        {
+        if(this.renderBuffer[line] !== buffer || writeOver)
+        { 
             this.clearLine(line);
             this.offsetTo(line);
             process.stdout.write(buffer);
@@ -121,14 +129,16 @@ class CanvasRenderer
             process.stdout.write(buffer);
         }
         
-        if(line > this.lines)
-            createLines();
+        // if(line > this.lines)
+        //     createLines();
         
     }
 
     onBeforeRender()
     {
-        
+        if(this.rendering)  
+            return false;
+        return this.rendering = true;
     }
 
     onAfterRender()
@@ -140,13 +150,95 @@ class CanvasRenderer
                 this.clearLine(i + (this.scratchBuffer.length - 1));
             // sync active state up
             this.scratchBuffer.splice((this.scratchBuffer.length - 1) - doFor, doFor);
-            this.canvas.render(); // invoke another render to re-write the lines lost.
+            this.rendering = false;
+            console.debug(`onAfterRender() doFor:${doFor} on line`);
+            return this.canvas.render(); // invoke another render to re-write the lines lost.
             
 
             // throw new Error(`itemsRemoved:${itemsRemoved}, doFor: ${doFor}, scratchBuffer:${this.scratchBuffer.length}, the renderBUffer: ${this.renderBuffer.length}`);
         }
+        this.rendering = false;
     }  
+
+        /**
+     * Will Render a schema and continue rendering after its .promise is resolved. the new line will be appended upon .resolve.
+     * This will collect a key press then set the model to the value and the system will re-render.
+     * Schema's are promise based rendering api's witch allows for easy expansion. they use PromptManagers to handle witch is current schema.
+     * @param {*} element The element containing the schema to render
+     * @param {*} properties render properties
+     */
+    renderSchema(element, line, ...properties)
+    {
+        if(element && element.writeSchema)
+        {
+            if(this.canvas.builder.isBlackListed(element)) return Promise.resolve();
+            switch(element.writeSchema.type)
+            {
+                case "prompt":
+                    return this.renderTextPrompt(element, line, properties);
+                case "animation":
+                    return this.renderTextAnimation(element, line, properties);
+            }
+        }
+    }
     
+    renderTextPrompt(element, ...properties)
+    {
+        return new Promise(resolve => {
+            const props = this.canvas.compileProperties(properties);
+            let modelValue = this.canvas.builder.value(element.writeSchema.name);
+            this.renderLine(element.renderBuffer[0] + modelValue, element.lineNumber)
+
+            if(!this.canvas.promptManager.isCurrent(element.writeSchema))
+            return resolve();
+            
+            cliCursor.show();
+            CanvasInputManager(this.canvas).collectKey(false).then(keyboardEvent => {
+                const {key, str} = keyboardEvent;
+                if(key && key.name == 'return')
+                {
+                    cliCursor.hide();
+                    this.canvas.promptManager.finish(element.writeSchema);
+                    return resolve();
+                } else if(key && key.name == 'backspace')
+                    modelValue = modelValue.substring(0, modelValue.length - 1);
+                else if(key && key.name == 'space')
+                    modelValue += " ";
+                else modelValue += str ? str : "";
+
+                cliCursor.hide();
+                this.clearLine(element.lineNumber);
+                this.renderLine(modelValue, element.lineNumber);
+                this.canvas.builder.set(element.writeSchema.name)(modelValue);
+                // resolve();
+            });
+        });
+    }
+
+    /**
+     * Will render a line 
+     * @param {*} element 
+     * @param {*} properties 
+     */
+    async renderTextAnimation(element, line, ...properties)
+    {
+        const options = this.canvas.compileProperties(properties);
+        const { writeSchema } = element;
+        if(!writeSchema.interval || !writeSchema.frames)
+            return;
+
+        const animate = frame => new Promise(resolveFrame => {
+            this.renderLine(element.renderBuffer[0] + frame, line, true);
+            setTimeout(() => {
+                // console.debug(`[cycle ${this.canvas.builder.drawCount()}]: Resolving animation frame: ${frame}, frame wrote: ${element.renderBuffer[0] + frame} \n on line: ${line}`);
+                resolveFrame();
+            }, writeSchema.interval);
+        });
+
+        for(const frame of writeSchema.frames)
+            (await animate(frame));
+        return;
+    }
 
 }
 
