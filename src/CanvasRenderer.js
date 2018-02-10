@@ -216,11 +216,10 @@ class CanvasRenderer
     }
 
     /**
-     * Will render a line 
-     * @param {*} element 
-     * @param {*} properties 
+     * Will render a text based animation. 
+     * @param {*} element The animation element.
      */
-    async renderTextAnimation(element, line, ...properties)
+    async renderTextAnimation(element, line, properties)
     {
         const options = this.canvas.compileProperties(properties);
         const { writeSchema } = element;
@@ -228,9 +227,9 @@ class CanvasRenderer
             return;
 
         const animate = frame => new Promise(resolveFrame => {
-            this.renderLine(element.renderBuffer[0] + frame, line, true);
+            this.renderLine(writeSchema.middleware(writeSchema.frames.indexOf(frame), element.renderBuffer[0], frame), line, true);
             setTimeout(() => {
-                // console.debug(`[cycle ${this.canvas.builder.drawCount()}]: Resolving animation frame: ${frame}, frame wrote: ${element.renderBuffer[0] + frame} \n on line: ${line}`);
+                console.debug(`[cycle ${this.canvas.builder.drawCount()}]: Resolving animation frame: ${frame}, frame wrote: ${element.renderBuffer[0] + frame} \n on line: ${line}`);
                 resolveFrame();
             }, writeSchema.interval);
         });

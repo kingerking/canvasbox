@@ -241,7 +241,7 @@ class Canvas {
                 // this element will be last if set.
                 
                 if(this.returnOnElement == canvasElement)
-                {
+                { // for internal use only.
                     this.renderer.onAfterRender();
                     this.eventHandler.emit('after-render');
                     return;

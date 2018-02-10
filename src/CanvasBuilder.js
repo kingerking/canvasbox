@@ -95,7 +95,8 @@ class CanvasBuilder {
         let el = undefined;
         return fragment => {
             if(expressionOutput)
-                return this.canvas.stopElementNextCycle(el);
+                // return this.canvas.stopElementNextCycle(el);
+                return;
             fragment(this);
             el = this.canvas.getLastElement();
             this.canvas.stopRenderOn(el);
@@ -369,14 +370,18 @@ class CanvasBuilder {
 
     /**
      * This is a fun function people can use.
+     * This is middleware for a animation schema.
      * it will animate the text by making big and small letters
      * and pulsing a rainbow left to right.
-     * @param {*} text 
      */
-    rainbow(text)
+    rainbow(frameNumber, prefix, frame)
     {
-        // TODO allow rainbow rendering on the console(not just random).
-        return text;
+        const { red, green, blue, magenta, cyan } = require('chalk');
+        const binding = [red,green,blue,magenta,cyan];
+        const rand = () => Math.floor(Math.random() * ((binding.length - 1) - 0 + 1)) + 0;
+        prefix = prefix.split("").map(element => binding[rand()](element));
+        frame = frame.split("").map(element => binding[rand()](element));
+        return prefix.join("") + frame.join("");
     }
 
     /**
@@ -385,11 +390,12 @@ class CanvasBuilder {
      * @param interval the interval between frames.
      * @param properties the extra properties.
      */
-    animation(interval, ...properties)
+    animation(interval, middleware, ...properties)
     {
         const writeSchema = {};
         writeSchema.interval = interval;
         writeSchema.extra = properties;
+        writeSchema.middleware = !middleware ? (frameNumber, prefix, frame) => prefix + frame : middleware;
         writeSchema.type = 'animation';
         return (...frames) => {
             // right now the system only supports frame based animations. in future we will support multi line frames via multi dimensional arrays
