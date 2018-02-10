@@ -228,12 +228,22 @@ class CanvasRenderer
         const { writeSchema } = element;
         if(!writeSchema.interval || !writeSchema.frames)
             return;
-
+        let framesRendered = 0;
         const animate = frame => new Promise(resolveFrame => {
+            framesRendered++;
             let prefix = element.renderBuffer[0];
 
             writeSchema.middleware.forEach(middleware => {
-                const middleOut = middleware(writeSchema.frames.indexOf(frame), prefix, frame, animationState);
+                const middleOut = middleware(writeSchema.frames.indexOf(frame), prefix, frame, animationState, {
+                    animationLength: writeSchema.frames.length * writeSchema.interval,
+                    remainingLength: (writeSchema.frames.length * writeSchema.interval) / framesRendered,
+                    remainingFrames: writeSchema.frames.length - framesRendered,
+                    currentFrame: framesRendered,
+                    frames: writeSchema.frames, 
+                    interval: writeSchema.interval,
+                    addFrame: frameContents => writeSchema.frames.push(frameContents), 
+                    setInterval: interval => writeSchema.interval = interval,
+                });
                 prefix = middleOut.prefix;
                 frame = middleOut.frame;
                 animationState = _.merge(animationState, middleOut.state);

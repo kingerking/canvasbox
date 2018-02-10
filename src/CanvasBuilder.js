@@ -44,6 +44,7 @@ class CanvasBuilder {
         this.renderWhile = this.renderWhile.bind(this);
         this.rainbow = this.rainbow.bind(this);
         this.capUnder = this.capUnder.bind(this);
+        this.timedReveal = this.timedReveal.bind(this);
     }
 
     /**
@@ -379,15 +380,39 @@ class CanvasBuilder {
      */
     rainbow(frameNumber, prefix, frame, state)
     {
+        if(frameNumber == 0) { state = { prefixColor: 0, frameColor: 0, }; }
+
         const grad = require('gradient-string');
         const binding = [
-            grad('pink', 'cyan', 'blue', 'green'), 
-            grad('magenta', 'blue', 'green', 'grey'),
-            grad('magenta', 'cyan', 'link', 'yellow'),
-            grad('yellow', 'pink', 'blue', 'green')
+            'yellow', 'cyan', 'blue', 'green', 
         ];
         const rand = () => Math.floor(Math.random() * ((binding.length - 1) - 0 + 1)) + 0;
-        return { prefix: binding[rand()](prefix), frame: binding[rand()](frame), state };
+
+        const nextColor = isPrefix => {
+            if(isPrefix)
+            {
+                if(state.prefixColor < binding.length - 1)
+                    return ++state.prefixColor;
+                else 
+                    return (state.prefixColor = 0);
+            } else {
+                if(state.frameColor < binding.length - 1)
+                    return ++state.frameColor;
+                else 
+                    return (state.frameColor = 0);
+            }
+        }
+
+        prefix = prefix.split("").map(letter =>{
+            return grad(binding[nextColor(true)], 'yellow')(letter);
+        }).join("");
+
+        frame = frame.split("").map(letter =>{
+            return grad(binding[nextColor(false)], 'yellow')(letter);
+        }).join("");
+
+
+        return { prefix, frame, state };
     }
 
     /**
@@ -405,6 +430,40 @@ class CanvasBuilder {
         return {
             prefix: state.blink ? prefix : "",
             frame: state.blink ? frame : "",
+            state
+        };
+    }
+
+    /**
+     * Will slowly reveal the text.
+     * this animation will only render then text. will not render frames.
+     * If this is to run properly it is expected to set the animation interval to 0 and instead
+     * pass how long you wish to run this animation by passing in millis the interval into the first function.
+     * @param {*} frameNumber 
+     * @param {*} prefix 
+     * @param {*} frame 
+     * @param {*} state 
+     */
+    timedReveal(frameNumber, prefix, frame, state, animationController)
+    {
+        if(frameNumber == 0) 
+        {
+            state = { toAdd: prefix.split(''), frameBuffer: [] };
+            animationController.setInterval(animationController.interval / state.toAdd.length);
+            state.toAdd.forEach((letter, index) => {
+                let subBuffer = "";
+                for(let i = 0; i <= index; i++)
+                    subBuffer += state.toAdd[i];
+                animationController.addFrame(subBuffer);
+            });
+            return {prefix: "", frame: "", state};
+        }
+        
+        
+
+        return {
+            prefix: "",
+            frame,
             state
         };
     }
@@ -437,7 +496,7 @@ class CanvasBuilder {
         return (...frames) => {
             // right now the system only supports frame based animations. in future we will support multi line frames via multi dimensional arrays
             // and we will support gif's / array of png or jpg images.
-            writeSchema.frames = frames;
+            writeSchema.frames = frames.length > 0 ? frames: [""];
             return writeSchema;
         }
     }
