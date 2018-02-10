@@ -12,18 +12,22 @@ const CanvasBuilder = require('./CanvasBuilder');
 const CanvasRenderer = require('./CanvasRenderer');
 const PromptAccessControl = require('./CanvasPromptManager');
 
+function GenerateCanvasBuilder(plugins)
+{
+    
+    
+}
 
 /**
  * The heart of a CanvasBox instance.
  * This will handle all events, dispatching and creation of sub objects and handlers.
  */
 class Canvas {
-    constructor(factory, options)
+    constructor(factory)
     {
         this.bindMethods.bind(this)();
         // user render factory
         this.factory = factory;
-        this.options = options;
         this.builder = new CanvasBuilder(this);
         this.renderer = new CanvasRenderer(this);
         this.promptManager = new PromptAccessControl(this);
@@ -264,6 +268,7 @@ class Canvas {
         //         return this.eventHandler.once('after-render', () => {
         //             this.render();
         //         });
+        //         return this.eventHandler.once('after-render', this.render);
         //     this.render();
         // }, 1000 / 5);
         return;
