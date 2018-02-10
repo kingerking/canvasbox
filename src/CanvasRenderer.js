@@ -66,7 +66,10 @@ class CanvasRenderer
     newLine()
     { this.lines++; process.stdout.write('\n'); }
 
-
+    /**
+     * Focus on a line
+     * @param {*} targetLine 
+     */
     offsetTo(targetLine)
     {
         let offset = 0;
@@ -82,6 +85,10 @@ class CanvasRenderer
         return this.offset;
     }
 
+    /**
+     * Clear a line
+     * @param {*} line 
+     */
     clearLine(line)
     {
         const offset = this.offsetTo(line);
@@ -141,6 +148,9 @@ class CanvasRenderer
         return this.rendering = true;
     }
 
+    /**
+     * Trim old unrendered lines
+     */
     onAfterRender()
     {
         if(this.scratchBuffer.length < this.renderBuffer.length)

@@ -43,6 +43,7 @@ class CanvasBuilder {
         this.info = this.info.bind(this);
         this.renderWhile = this.renderWhile.bind(this);
         this.rainbow = this.rainbow.bind(this);
+        this.capUnder = this.capUnder.bind(this);
     }
 
     /**
@@ -405,6 +406,19 @@ class CanvasBuilder {
             frame: state.blink ? frame : "",
             state
         };
+    }
+
+    /**
+     * Animaton middleware for randomly converting from upper case to lower case umpaloompa style.
+     * @param {} frameNumber 
+     * @param {*} prefix 
+     * @param {*} frame 
+     * @param {*} state 
+     */
+    capUnder(frameNumber, prefix, frame, state)
+    {
+        prefix = prefix.split("").map(letter => Math.random() >= 0.5 ? letter.toLowerCase() : letter.toUpperCase() ).join("");
+        return { prefix, frame, state };
     }
 
     /**
