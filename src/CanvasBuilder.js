@@ -11,7 +11,7 @@ class CanvasBuilder {
     {
         this.bindMethods.bind(this)();
         this.canvas = canvas;
-        
+        this.blackListedSchemas = [];
         // easy access to user.
         this.property = this.canvas.property;
     }

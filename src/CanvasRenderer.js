@@ -195,7 +195,7 @@ class CanvasRenderer
      * @param {*} element The animation element.
      */
     async renderTextAnimation(element, line, properties)
-    {
+    {console.debug("starting animation")
         const options = this.canvas.compileProperties(properties);
         const { writeSchema } = element;
         if(!writeSchema.interval || !writeSchema.frames)
@@ -211,6 +211,7 @@ class CanvasRenderer
 
         for(const frame of writeSchema.frames)
             (await animate(frame));
+            
         return;
     }
 
