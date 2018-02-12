@@ -18,33 +18,52 @@ class CanvasBuilder {
 
     bindMethods()
     {
-        this.clear = this.clear.bind(this);
-        this.prompt = this.prompt.bind(this);
-        this.write = this.write.bind(this);
-        this.model = this.model.bind(this);
-        this.reDraw = this.reDraw.bind(this);
-        this.drawCount = this.drawCount.bind(this);
-        this.event = this.event.bind(this);
-        this.update = this.update.bind(this);
-        this.value = this.value.bind(this);
-        this.clearScreen = this.clearScreen.bind(this);
-        this.set = this.set.bind(this);
-        this.once = this.once.bind(this);
-        this.list = this.list.bind(this);
-        this.blink = this.blink.bind(this);
-        this.animation = this.animation.bind(this);
+        this.clear         = this.clear.bind(this);
+        this.prompt        = this.prompt.bind(this);
+        this.write         = this.write.bind(this);
+        this.model         = this.model.bind(this);
+        this.reDraw        = this.reDraw.bind(this);
+        this.drawCount     = this.drawCount.bind(this);
+        this.event         = this.event.bind(this);
+        this.update        = this.update.bind(this);
+        this.value         = this.value.bind(this);
+        this.clearScreen   = this.clearScreen.bind(this);
+        this.set           = this.set.bind(this);
+        this.once          = this.once.bind(this);
+        this.list          = this.list.bind(this);
+        this.animation     = this.animation.bind(this);
         this.isBlackListed = this.isBlackListed.bind(this);
-        this.doneWith = this.doneWith.bind(this);
-        this.refreshRate = this.refreshRate.bind(this);
-        this.loopUntil = this.loopUntil.bind(this);
-        this.render = this.render.bind(this);
+        this.doneWith      = this.doneWith.bind(this);
+        this.refreshRate   = this.refreshRate.bind(this);
+        this.loopUntil     = this.loopUntil.bind(this);
+        this.grid          = this.grid.bind(this);
+        this.render        = this.render.bind(this);
         this.createElement = this.createElement.bind(this);
         this.deleteElement = this.deleteElement.bind(this);
-        this.info = this.info.bind(this);
-        this.renderWhile = this.renderWhile.bind(this);
-        this.rainbow = this.rainbow.bind(this);
-        this.capUnder = this.capUnder.bind(this);
-        this.timedReveal = this.timedReveal.bind(this);
+        this.info          = this.info.bind(this);
+        this.renderWhile   = this.renderWhile.bind(this);
+        this.rainbow       = this.rainbow.bind(this);
+        this.capUnder      = this.capUnder.bind(this);
+        this.timedReveal   = this.timedReveal.bind(this);
+    }
+
+    /**
+     * Render a grid.
+     * @param {*} rows Rows(Array) to render
+     * @param {*} cols Cols(Array) to render
+     */
+    grid(rows)
+    {
+        return colIterator => {
+            for(const row of rows)
+            {
+                const buffer = [];
+                for(let col = 0; col < row.length; col++)
+                    buffer.push(colIterator(row[col], col, rows.indexOf(row), rows[0] ? rows[0].length : 0, rows.length, this));
+                this.write(buffer.join(""));
+            }
+        };
+    
     }
 
     /**
@@ -415,24 +434,6 @@ class CanvasBuilder {
         return { prefix, frame, state };
     }
 
-    /**
-     * Blinking animation middleware
-     * @param {*} frameNumber 
-     * @param {*} prefix 
-     * @param {*} frame 
-     * @param {*} state 
-     */
-    blink(frameNumber, prefix, frame, state)
-    {
-        if(frame == 0)
-            state.blink = true;
-        state.blink = !state.blink;
-        return {
-            prefix: state.blink ? prefix : "",
-            frame: state.blink ? frame : "",
-            state
-        };
-    }
 
     /**
      * Will slowly reveal the text.
@@ -523,8 +524,8 @@ class CanvasBuilder {
      */
     reDraw(waitFor = 0)
     {
-        //setTimeout(() => this.canvas.eventHandler.emit('render'), waitFor);
-        throw new Error("reDraw is now deprecated due to new render implementation. there is simply no need for it now.");
+        setTimeout(() => this.canvas.eventHandler.emit('render'), waitFor);
+        // throw new Error("reDraw is now deprecated due to new render implementation. there is simply no need for it now.");
     }
 
 }

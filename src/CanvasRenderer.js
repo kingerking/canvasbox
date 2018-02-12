@@ -97,6 +97,7 @@ class CanvasRenderer
      */
     clearLine(line)
     {
+        // if(this.firstRender) return;
         const offset = this.offsetTo(line);
         readline.clearLine(process.stdout);
         readline.cursorTo(process.stdout, 0);
@@ -115,22 +116,23 @@ class CanvasRenderer
             if(line > this.lines) 
             {
                 const toAdd = (line - this.lines);
+                console.debug(`creating ${toAdd} line(s) on cycle ${this.canvas.drawCount}`);
                 // this.lines += toAdd;
                 for(let i = 0; i < toAdd; i++)
                     this.newLine();
             }
         };
         
+        let existsInRenderBuffer = this.renderBuffer.indexOf(buffer) !== -1;
+        if(!existsInRenderBuffer) createLines();
         // scratch buffer is what user renders out this session.
         if(this.scratchBuffer.length < line)
-            this.scratchBuffer.push(buffer);
+        this.scratchBuffer.push(buffer);
         else if(this.scratchBuffer.length >= line)
-            this.scratchBuffer[line] = buffer;
+        this.scratchBuffer[line] = buffer;
         
-        let existsInRenderBuffer = this.renderBuffer.indexOf(buffer) !== -1;
         // create non-existent lines
-        if(line > this.lines && !existsInRenderBuffer) createLines();
-
+        
         if(this.renderBuffer[line] !== buffer || writeOver)
         { 
             this.clearLine(line);
@@ -161,15 +163,19 @@ class CanvasRenderer
     {
         if(this.scratchBuffer.length < this.renderBuffer.length)
         {
-            const doFor = (this.renderBuffer.length - 1) - (this.scratchBuffer.length - 1);
-            for(let i = 0; i <= doFor; i++)
-                this.clearLine(i + (this.scratchBuffer.length - 1));
-            // sync active state up
-            this.scratchBuffer.splice((this.scratchBuffer.length - 1) - doFor, doFor);
-            this.rendering = false;
-            console.debug(`onAfterRender() doFor:${doFor} on line`);
-            return this.canvas.render(); // invoke another render to re-write the lines lost.
+            // const doFor = (this.renderBuffer.length - 1) - (this.scratchBuffer.length - 1);
+            // for(let i = 0; i <= doFor; i++)
+            //     this.clearLine(i + (this.scratchBuffer.length - 1));
+            // // sync active state up
+            // this.scratchBuffer.splice((this.scratchBuffer.length - 1) - doFor, doFor);
+            // this.rendering = false;
+            // console.debug(`onAfterRender() doFor:${doFor} on line`);
+            // return this.canvas.render(); // invoke another render to re-write the lines lost.
             
+            for(let i = 0; i <= this.renderBuffer.length - this.scratchBuffer.length; i++)
+                this.scratchBuffer.pop();
+            this.rendering = false;
+            return this.canvas.render();
 
             // throw new Error(`itemsRemoved:${itemsRemoved}, doFor: ${doFor}, scratchBuffer:${this.scratchBuffer.length}, the renderBUffer: ${this.renderBuffer.length}`);
         }
@@ -208,7 +214,7 @@ class CanvasRenderer
                 return resolvePrompt();
             cliCursor.show();
             CanvasInputManager(this.canvas).collectKey(keyboardEvent => {
-                this.canvas.builder.set(element.writeSchema.name)(value + keyboardEvent.str);
+                this.canvas.builder.set(element.writeSchema.name)(value + keyboardEvent.str, false);
                 
                 keyboardEvent.stopListening();
                 resolvePrompt();
@@ -252,7 +258,7 @@ class CanvasRenderer
             this.renderLine(prefix + frame, line, true);
 
             setTimeout(() => {
-                console.debug(`[cycle ${this.canvas.builder.drawCount()}]: Resolving animation frame: ${frame}, frame wrote: ${element.renderBuffer[0] + frame} \n on line: ${line}`);
+                // console.debug(`[cycle ${this.canvas.builder.drawCount()}]: Resolving animation frame: ${frame}, frame wrote: ${element.renderBuffer[0] + frame} \n on line: ${line}`);
                 resolveFrame();
             }, writeSchema.interval);
         });

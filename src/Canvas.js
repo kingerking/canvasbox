@@ -209,7 +209,7 @@ class Canvas {
             this.elements.push(this.builder.write(element));
         }
         this.factory(this.builder);
-        console.debug(`render Request[${this.drawCount}]: payload yield: ${this.elements.length} `);
+        // console.debug(`render Request[${this.drawCount}]: payload yield: ${this.elements.length} `);
 
         // run init event after factory so user has chance to write a init event if they want
         if(this.drawCount == 1 && !this.hasInitializedCanvas) 
