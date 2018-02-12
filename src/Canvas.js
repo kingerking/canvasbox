@@ -188,7 +188,7 @@ class Canvas {
     /**
      * Will handle the re-drawing process.
      */
-    async render()
+    async render(ignoreLineState = false)
     {
         this.clearEvents();
         this.clearElements();
@@ -218,7 +218,7 @@ class Canvas {
             this.hasInitializedCanvas = true;
             // re-render in case user sets default model values.
             this.eventHandler.emit('init');
-            this.render();
+            this.render(true);
             return;
         } 
         try {
@@ -239,7 +239,8 @@ class Canvas {
                 if(!canvasElement || this.builder.isBlackListed(canvasElement)) continue;
                 (await canvasElement.render(
                     this.property('lines', this.elements),
-                    this.property('drawCount', this.drawCount)
+                    this.property('drawCount', this.drawCount),
+                    this.property('ignore_state', ignoreLineState)
                 ));
                 canvasElement.eventHandler.emit('finish', { target: canvasElement });
                 // this element will be last if set.

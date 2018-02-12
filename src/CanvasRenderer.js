@@ -40,6 +40,8 @@ class CanvasRenderer
         this.renderSchema = this.renderSchema.bind(this);
         this.renderTextAnimation = this.renderTextAnimation.bind(this);
         this.renderTextPrompt = this.renderTextPrompt.bind(this);
+        this.clearRenderBuffers = this.clearRenderBuffers.bind(this);
+        this.renderSelection = this.renderSelection.bind(this);
     }
 
     clearLines()
@@ -91,13 +93,24 @@ class CanvasRenderer
         return this.offset;
     }
 
+    /** 
+     * This will forcefully override a screen refresh and delete the buffers.
+     * This is to combat te issue of dual line rendering(bug)
+    */
+    clearRenderBuffers()
+    {
+        for(let i = 0; i <= this.lines; i++)
+            this.clearLine(i);
+        this.scratchBuffer = [];
+        this.renderBuffer  = [];
+    }
+
     /**
      * Clear a line
      * @param {*} line 
      */
     clearLine(line)
     {
-        // if(this.firstRender) return;
         const offset = this.offsetTo(line);
         readline.clearLine(process.stdout);
         readline.cursorTo(process.stdout, 0);
@@ -124,7 +137,7 @@ class CanvasRenderer
         };
         
         let existsInRenderBuffer = this.renderBuffer.indexOf(buffer) !== -1;
-        if(!existsInRenderBuffer) createLines();
+        if(!existsInRenderBuffer) createLines(); // may need this in future.
         // scratch buffer is what user renders out this session.
         if(this.scratchBuffer.length < line)
         this.scratchBuffer.push(buffer);
@@ -173,7 +186,7 @@ class CanvasRenderer
             // return this.canvas.render(); // invoke another render to re-write the lines lost.
             
             for(let i = 0; i <= this.renderBuffer.length - this.scratchBuffer.length; i++)
-                this.scratchBuffer.pop();
+                this.scratchBuffer.pop(); 
             this.rendering = false;
             return this.canvas.render();
 
@@ -200,6 +213,8 @@ class CanvasRenderer
                     return this.renderTextPrompt(element, line, properties);
                 case "animation":
                     return this.renderTextAnimation(element, line, properties);
+                case "prompt-selection":
+                    return this.renderSelection(element, line, properties);
             }
         }
     }
@@ -219,6 +234,14 @@ class CanvasRenderer
                 keyboardEvent.stopListening();
                 resolvePrompt();
             });
+        });
+    }
+
+    renderSelection(element, startLine, properties)
+    {
+        return new Promise(resolveSelection => {
+            for(let i = 0; i < element.writeSchema.fields.length; i++)
+                this.renderLine(element.writeSchema.fields[i], i + this.lines);
         });
     }
 

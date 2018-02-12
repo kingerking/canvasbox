@@ -14,12 +14,14 @@ class CanvasElement
         this.eventHandler = new EventEmitter();
         this.bindMethods.bind(this)();
         // all lines this will render.
+        // length of this is considered the height of the element
         this.renderBuffer = [];
         this.writeSchema = undefined;
         // key of model value this is linked to. to basically we will re-render this element if the value is different from currently rendered element.
         this.linkedTo = undefined;
         this.queued = false;
         this.lineNumber = 0;
+        
     }
     /**
      * Bind all local methods.
@@ -87,8 +89,9 @@ class CanvasElement
     simpleRender(properties)
     {
         return new Promise(resolve => {
-            this.canvas.renderer.renderLine(this.renderBuffer[0], this.lineNumber, properties);
-            // this.canvas.renderer.newLine();
+            for(let i = 0; i < this.renderBuffer.length; i++)
+                this.canvas.renderer.renderLine(this.renderBuffer[i], this.lineNumber + i, properties);
+            
             resolve();
         });
     }

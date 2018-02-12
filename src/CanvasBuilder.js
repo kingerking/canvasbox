@@ -47,6 +47,7 @@ class CanvasBuilder {
         this.timedReveal   = this.timedReveal.bind(this);
     }
 
+
     /**
      * Render a grid.
      * @param {*} rows Rows(Array) to render
@@ -306,9 +307,13 @@ class CanvasBuilder {
         const writeSchema = {};
         writeSchema.name = bindTo;
         writeSchema.type = 'prompt';
-        return (...properties) => {
+        return (...fields) => {
             // define object to merge.
-            writeSchema.options = this.canvas.compileProperties(properties);    
+            if(fields && fields instanceof Array)
+            {
+                writeSchema.fields = fields;
+                writeSchema.type = 'prompt-selection';
+            }
             return writeSchema;
         };
     }
