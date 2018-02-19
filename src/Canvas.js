@@ -205,7 +205,7 @@ class Canvas {
         {
             // this.developmentSocket.emit('reset');
             // if in dev mode connect to dev server.
-            const element = this.builder.createElement(chalk.red("Logging to dev server on port: " + this.developmentPort))();
+            const element = this.builder.createElement(chalk.red("Logging to dev server on port: " + this.developmentPort, ` | count ${this.drawCount}`))();
             this.elements.push(this.builder.write(element));
         }
         this.factory(this.builder);

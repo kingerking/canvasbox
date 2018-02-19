@@ -2,9 +2,16 @@ const { EventEmitter } = require('events');
 
 const readline = require('readline');
 const chalk = require('chalk');
-const CanvasInputManager = require('./CanvasInputManager');
+const CanvasInput = require('./CanvasInputManager');
 const cliCursor = require('cli-cursor');
 const _ = require('lodash');
+
+/** 
+ * Will serve as a buffer for any data that would be overwritten on re-render.
+*/
+const memory = {
+    selectionFields: {}
+};
 
 /**
  * Will handle all rendering to screen.
@@ -28,20 +35,21 @@ class CanvasRenderer
 
     bindMethods()
     {
-        this.renderLine = this.renderLine.bind(this);
-        this.clearLines = this.clearLines.bind(this);
-        this.offsetTo = this.offsetTo.bind(this);
-        this.newLine = this.newLine.bind(this);
-        this.clearLine = this.clearLine.bind(this);
-        this.deleteDown = this.deleteDown.bind(this);
-        this.deleteUp = this.deleteUp.bind(this);
-        this.onAfterRender = this.onAfterRender.bind(this);
-        this.onBeforeRender = this.onBeforeRender.bind(this);
-        this.renderSchema = this.renderSchema.bind(this);
-        this.renderTextAnimation = this.renderTextAnimation.bind(this);
-        this.renderTextPrompt = this.renderTextPrompt.bind(this);
-        this.clearRenderBuffers = this.clearRenderBuffers.bind(this);
-        this.renderSelection = this.renderSelection.bind(this);
+        this.renderLine           = this.renderLine.bind(this);
+        this.clearLines           = this.clearLines.bind(this);
+        this.offsetTo             = this.offsetTo.bind(this);
+        this.newLine              = this.newLine.bind(this);
+        this.clearLine            = this.clearLine.bind(this);
+        this.deleteDown           = this.deleteDown.bind(this);
+        this.deleteUp             = this.deleteUp.bind(this);
+        this.onAfterRender        = this.onAfterRender.bind(this);
+        this.onBeforeRender       = this.onBeforeRender.bind(this);
+        this.renderSchema         = this.renderSchema.bind(this);
+        this.renderTextAnimation  = this.renderTextAnimation.bind(this);
+        this.renderTextPrompt     = this.renderTextPrompt.bind(this);
+        this.clearRenderBuffers   = this.clearRenderBuffers.bind(this);
+        this.renderAdvancedSchema = this.renderAdvancedSchema.bind(this);
+        this.renderSingleSelectSelection = this.renderSingleSelectSelection.bind(this);
     }
 
     clearLines()
@@ -117,8 +125,8 @@ class CanvasRenderer
     }
 
     /**
-     * Will render a line to the screen.    
-     * @param {*} buffer The buffer to write    
+     * Will render a line to the screen.
+     * @param {*} buffer The buffer to write
      * @param {*} line What line to write on
      * @param {*} writeOver If false then will only write the line if it has changed else it will write over it anyways.
      */
@@ -137,7 +145,6 @@ class CanvasRenderer
         };
         
         let existsInRenderBuffer = this.renderBuffer.indexOf(buffer) !== -1;
-        if(!existsInRenderBuffer) createLines(); // may need this in future.
         // scratch buffer is what user renders out this session.
         if(this.scratchBuffer.length < line)
         this.scratchBuffer.push(buffer);
@@ -145,6 +152,7 @@ class CanvasRenderer
         this.scratchBuffer[line] = buffer;
         
         // create non-existent lines
+        if(!existsInRenderBuffer) createLines(); // may need this in future.
         
         if(this.renderBuffer[line] !== buffer || writeOver)
         { 
@@ -213,12 +221,67 @@ class CanvasRenderer
                     return this.renderTextPrompt(element, line, properties);
                 case "animation":
                     return this.renderTextAnimation(element, line, properties);
-                case "prompt-selection":
-                    return this.renderSelection(element, line, properties);
             }
         }
     }
     
+    /**
+     * Render a advanced schema.
+     * @param {*} element The element to target.
+     * @param {*} startAt The line to start at.
+     * @param {*} endAt The line to end at.
+     * @param {*} preset The preset operations name.
+     * @param {*} props Any extra props.
+     */
+    async renderAdvancedSchema(element, startAt, endAt, preset, props)
+    {
+        // TODO: Implement preset "selection-based"
+        switch(preset)
+        {
+            case "selection-based": return await renderSingleSelectSelection(element, startAt, endAt, props);
+        }
+    }
+
+    /** 
+     * A form of advanced schema rendering.
+     * will render a interactive list that you can pick a item.
+    */
+    async renderSingleSelectSelection(element, startAt, endAt, props)
+    { 
+        // TODO: resolve promise rejection: renderSingleSelectSelection is not defined.
+        // TODO: add fractional rendering(re-render only lines belonging to selection before submitted)
+        const self = {
+            // weather or not user pressed the "return key" this interval.
+            isReturn: false,
+        };
+        const { writeSchema } = element;
+        const { fields, color, selected, focused } = writeSchema;
+
+        // determine what color to render line.
+        self.resolveColor = field => {
+            if (color.selected && selected == fields.indexOf(field) - 1)
+                return chalk.rgb(...color.selected)(field);
+            if (color.focused && focused == fields.indexOf(field) - 1)
+                return chalk.rgb(...color.focused)(field);
+            // fallback incase for some reason the default or custom color options dont make it here.
+            return color.default ? chalk.rgb(...color.default)(field) : chalk.grey(field);
+        }
+
+        // render a field in the selection
+        self.renderField = field => {
+            this.renderLine(self.resolveColor(field), fields.indexOf(field) - 1, true);
+        }
+
+        for(const field of fields) await self.renderField(field);
+        self.isReturn = false; // todo write collect key
+        // grab input, update memory, then re-render to reflect changes
+        return await CanvasInput(this.canvas).collectKey(({str, key}) => {
+
+            if(!self.isReturn) // Redraw to reset input if user 
+                this.canvas.render();
+        });
+    }
+
     renderTextPrompt(element, line, ...properties)
     {
         return new Promise(resolvePrompt => {
@@ -234,14 +297,6 @@ class CanvasRenderer
                 keyboardEvent.stopListening();
                 resolvePrompt();
             });
-        });
-    }
-
-    renderSelection(element, startLine, properties)
-    {
-        return new Promise(resolveSelection => {
-            for(let i = 0; i < element.writeSchema.fields.length; i++)
-                this.renderLine(element.writeSchema.fields[i], i + this.lines);
         });
     }
 

@@ -1,7 +1,7 @@
 {
   "name": "canvasbox",
   "version": "1.0.0",
-  "description": "A smart console logging client with dynamic output, Prompt capability and a beautiful Api design.",
+  "description": "Simple, robust framework for rendering feature rich console applications.",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

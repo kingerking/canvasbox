@@ -29,12 +29,13 @@ class CanvasElement
     bindMethods()
     {
         this.render = this.render.bind(this);
-        this.renderPromiseSchema = this.renderPromiseSchema.bind(this);
-        this.simpleRender = this.simpleRender.bind(this);
-        this.discard = this.discard.bind(this);
+        this.renderPromiseSchema  = this.renderPromiseSchema.bind(this);
+        this.simpleRender         = this.simpleRender.bind(this);
+        this.discard              = this.discard.bind(this);
         this.inactiveSchemaRender = this.inactiveSchemaRender.bind(this);
-        this.event = this.event.bind(this);
-        this.queueForRender = this.queueForRender.bind(this);
+        this.event                = this.event.bind(this);
+        this.queueForRender       = this.queueForRender.bind(this);
+        this.renderSelectionPromiseSchema = this.renderSelectionPromiseSchema.bind(this);
     }
 
     queueForRender()
@@ -117,6 +118,18 @@ class CanvasElement
     }
 
     /**
+     * Will render a promise based schema
+     * @param {*} properties 
+     */
+    renderSelectionPromiseSchema(properties)
+    {
+        const { renderer } = this.canvas;
+        return new Promise(resolve => {
+            renderer.renderAdvancedSchema(this, this.lineNumber, this.writeSchema.fields.length, 'selection-based', properties).then(resolve);
+        });
+    }
+
+    /**
      * Render this item.
      */
     async render(...properties)
@@ -129,6 +142,9 @@ class CanvasElement
         {
             if(this.writeSchema.dropped)
                 return await this.inactiveSchemaRender(properties);
+            // input-handling for prompt-selections.
+            if(this.writeSchema.type == "prompt-selection")
+                return await this.renderSelectionPromiseSchema(properties);
             return await this.renderPromiseSchema(properties);
         }
         

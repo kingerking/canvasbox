@@ -2,6 +2,13 @@ const _ = require('lodash');
 const CanvasElement = require('./CanvasElement');
 const CanvasUtil = require('./CanvasUtil');
 
+const defaultSelectionColorOptions = {
+    // Default color options.
+    default: [255, 255, 255],
+    selected: [155, 155, 155],
+    focused: [100, 100, 100]
+}
+
 /**
  * This is what is passed into a users CanvasFactory function(Their render function).
  * This will contain inerfacing methods for users use.
@@ -302,7 +309,7 @@ class CanvasBuilder {
      * Will create a prompt schema
      * @param {*} bindTo What model key to bind to.
      */
-    prompt(bindTo = "")
+    prompt(bindTo = "", ...options)
     {
         const writeSchema = {};
         writeSchema.name = bindTo;
@@ -312,7 +319,17 @@ class CanvasBuilder {
             if(fields && fields instanceof Array)
             {
                 writeSchema.fields = fields;
+                writeSchema.selected = null;
+                writeSchema.focused = 0;
                 writeSchema.type = 'prompt-selection';
+
+                let colorOptions = options[0] || {};
+                if(options.length == 0  || 
+                    !options[0].regular || !options[0].selected || !options[0].focused)
+                colorOptions = _.merge(colorOptions, defaultSelectionColorOptions);
+
+                writeSchema.color = colorOptions;
+
             }
             return writeSchema;
         };
@@ -338,7 +355,7 @@ class CanvasBuilder {
                 return value ? value : "";
             }
             else if(required.length == 1 && !(factory instanceof Function))
-                return this.canvas.updateModelValue(this.canvas.property(required[0], !factory ? "hello" : factory), fallback);
+                return this.canvas.updateModelValue(this.canvas.property(required[0], !factory ? "" : factory), fallback);
             
             
             // user wants to invoke a factory function if all values exist.
@@ -359,7 +376,7 @@ class CanvasBuilder {
             else {
                 if(fallback) fallback();
                 return returnBuffer;
-            }
+            } 
         };  
     }
 
@@ -427,11 +444,11 @@ class CanvasBuilder {
             }
         }
 
-        prefix = prefix.split("").map(letter =>{
+        prefix = prefix.split("").map(letter => {
             return grad(binding[nextColor(true)], 'yellow')(letter);
         }).join("");
 
-        frame = frame.split("").map(letter =>{
+        frame = frame.split("").map(letter => {
             return grad(binding[nextColor(false)], 'yellow')(letter);
         }).join("");
 
