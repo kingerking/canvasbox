@@ -238,7 +238,8 @@ class CanvasRenderer
         // TODO: Implement preset "selection-based"
         switch(preset)
         {
-            case "selection-based": return await renderSingleSelectSelection(element, startAt, endAt, props);
+            case "selection-based":
+                return await this.renderSingleSelectSelection(element, startAt, endAt, props);
         }
     }
 
@@ -255,7 +256,11 @@ class CanvasRenderer
             isReturn: false,
         };
         const { writeSchema } = element;
-        const { fields, color, selected, focused } = writeSchema;
+        let { fields, color, selected, focused } = writeSchema;
+        if(!memory[writeSchema.name])
+            memory[writeSchema.name] = writeSchema;
+        selected = memory[writeSchema.name].selected;
+        focused = memory[writeSchema.name].focused;
 
         // determine what color to render line.
         self.resolveColor = field => {
@@ -276,7 +281,8 @@ class CanvasRenderer
         self.isReturn = false; // todo write collect key
         // grab input, update memory, then re-render to reflect changes
         return await CanvasInput(this.canvas).collectKey(({str, key}) => {
-
+            if(key && key.name === "down")
+                memory[writeSchema.name].focused++;
             if(!self.isReturn) // Redraw to reset input if user 
                 this.canvas.render();
         });

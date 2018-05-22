@@ -31,7 +31,7 @@ class Canvas {
         this.builder = new CanvasBuilder(this);
         this.renderer = new CanvasRenderer(this);
         this.promptManager = new PromptAccessControl(this);
-        this.developmentMode = true;
+        this.developmentMode = false;
         this.developmentPort = 9000;
         this.developmentSocket = undefined;
         this.loopBackMethod = undefined;
